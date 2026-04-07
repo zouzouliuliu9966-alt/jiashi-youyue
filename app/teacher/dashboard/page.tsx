@@ -36,7 +36,11 @@ export default function TeacherDashboard() {
           .eq('teacher_id', data.id)
           .order('created_at', { ascending: false })
         if (matchData) setMatches(matchData as MatchWithBooking[])
+      } else {
+        router.push('/teacher/login')
       }
+    }).catch(() => {
+      router.push('/teacher/login')
     })
   }, [router])
 
