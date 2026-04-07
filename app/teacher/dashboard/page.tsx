@@ -178,6 +178,13 @@ export default function TeacherDashboard() {
               </Field>
             )}
 
+            {(form.teaching_mode === '工作室' || form.teaching_mode === '均可') && (
+              <Field label="工作室地址" hint="填写具体地址，方便家长找到您">
+                <input value={(form as Record<string, unknown>).studio_address as string || ''} onChange={e => set('studio_address' as keyof Teacher, e.target.value)}
+                  className="w-full border rounded-xl px-3 py-2.5 text-sm" placeholder="如：雨花台区xx大厦3楼301" />
+              </Field>
+            )}
+
             <Field label="可用时间 *" hint="请务必及时更新，家长会根据此安排选择">
               <input value={form.available_time || ''} onChange={e => set('available_time', e.target.value)}
                 className="w-full border rounded-xl px-3 py-2.5 text-sm" placeholder="如：周一三五晚上、周末全天" />
