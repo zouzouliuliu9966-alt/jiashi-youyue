@@ -48,8 +48,8 @@ export default function TeacherCard({ teacher, onBook }: { teacher: Teacher; onB
         {teacher.teaching_mode !== '工作室' && teacher.service_areas && (
           <div><span className="text-gray-400">上门范围：</span>{teacher.service_areas}</div>
         )}
-        {(teacher as Record<string, unknown>).studio_address && (
-          <div className="col-span-2"><span className="text-gray-400">工作室地址：</span>{(teacher as Record<string, unknown>).studio_address as string}</div>
+        {String((teacher as Record<string, unknown>).studio_address || '') !== '' && (
+          <div className="col-span-2"><span className="text-gray-400">工作室地址：</span>{String((teacher as Record<string, unknown>).studio_address)}</div>
         )}
         <div><span className="text-gray-400">可用时间：</span>{teacher.available_time}</div>
         <div><span className="text-gray-400">教龄：</span>{teacher.years_exp}年</div>
