@@ -111,10 +111,36 @@ export default function TeacherDashboard() {
       {tab === 'profile' && (
         <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
           <div className="bg-white rounded-2xl p-4 space-y-4">
-            <Field label="姓名/称呼">
-              <input value={form.name || ''} onChange={e => set('name', e.target.value)}
-                className="w-full border rounded-xl px-3 py-2.5 text-sm" placeholder="如：张老师" />
-            </Field>
+            {/* 头像 + 姓名 */}
+            <div className="flex items-start gap-4">
+              <div className="shrink-0">
+                {form.photo_url ? (
+                  <img src={form.photo_url} alt="头像" className="w-20 h-20 rounded-xl object-cover" />
+                ) : (
+                  <div className="w-20 h-20 rounded-xl bg-orange-100 flex items-center justify-center">
+                    <span className="text-3xl text-orange-400">师</span>
+                  </div>
+                )}
+                <label className="block mt-2 cursor-pointer">
+                  <span className="text-xs text-orange-500 hover:text-orange-600">上传头像</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file || !teacher) return
+                    const ext = file.name.split('.').pop()
+                    const path = `${teacher.id}.${ext}`
+                    await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+                    const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+                    set('photo_url', data.publicUrl + '?t=' + Date.now())
+                  }} />
+                </label>
+              </div>
+              <div className="flex-1">
+                <Field label="姓名/称呼">
+                  <input value={form.name || ''} onChange={e => set('name', e.target.value)}
+                    className="w-full border rounded-xl px-3 py-2.5 text-sm" placeholder="如：张老师" />
+                </Field>
+              </div>
+            </div>
 
             <Field label="身份类型">
               <div className="flex flex-wrap gap-2">
@@ -200,10 +226,6 @@ export default function TeacherDashboard() {
                 className="w-full border rounded-xl px-3 py-2.5 text-sm" placeholder="如：5" />
             </Field>
 
-            <Field label="头像图片链接">
-              <input value={form.photo_url || ''} onChange={e => set('photo_url', e.target.value)}
-                className="w-full border rounded-xl px-3 py-2.5 text-sm" placeholder="粘贴图片URL（可选）" />
-            </Field>
           </div>
 
           <button onClick={save} disabled={saving}
