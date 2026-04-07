@@ -54,7 +54,7 @@ export default function TeacherCard({ teacher, onBook }: { teacher: Teacher; onB
         <div><span className="text-gray-400">可用时间：</span>{teacher.available_time}</div>
         <div><span className="text-gray-400">教龄：</span>{teacher.years_exp}年</div>
         <div><span className="text-gray-400">收费：</span>
-          <span className="text-orange-500 font-medium">{teacher.price}元/小时</span>
+          <span className="text-orange-500 font-medium">{teacher.price}</span>
         </div>
       </div>
 

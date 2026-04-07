@@ -191,8 +191,8 @@ export default function TeacherDashboard() {
             </Field>
 
             <Field label="收费（元/小时）">
-              <input type="number" value={form.price || ''} onChange={e => set('price', Number(e.target.value))}
-                className="w-full border rounded-xl px-3 py-2.5 text-sm" placeholder="如：150" />
+              <input value={form.price || ''} onChange={e => set('price', e.target.value)}
+                className="w-full border rounded-xl px-3 py-2.5 text-sm" placeholder="如：初一500 初二600 初三650" />
             </Field>
 
             <Field label="教龄（年）">

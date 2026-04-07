@@ -11,7 +11,7 @@ export type Teacher = {
   teaching_mode: '上门' | '工作室' | '均可'
   service_areas: string | null
   available_time: string
-  price: number
+  price: string
   years_exp: number
   last_updated_at: string
   is_visible: boolean
