@@ -13,6 +13,8 @@ const TIER_COLORS: Record<number, string> = {
 }
 
 export default function TeacherCard({ teacher, onBook }: { teacher: Teacher; onBook: () => void }) {
+  const studioAddress = String((teacher as Record<string, unknown>).studio_address || '')
+
   return (
     <div className="bg-white rounded-2xl shadow-sm p-4">
       <div className="flex gap-3">
@@ -33,6 +35,7 @@ export default function TeacherCard({ teacher, onBook }: { teacher: Teacher; onB
             <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
               {teacher.teacher_type}
             </span>
+            <span className="text-xs text-gray-400">教龄{teacher.years_exp}年</span>
           </div>
           <p className="text-sm text-gray-500 mt-0.5">
             {teacher.subjects?.join('·')} · {teacher.grades?.join('/')}
@@ -43,19 +46,20 @@ export default function TeacherCard({ teacher, onBook }: { teacher: Teacher; onB
         </div>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-gray-600">
-        <div><span className="text-gray-400">上课方式：</span>{teacher.teaching_mode}</div>
+      <div className="mt-3 space-y-1.5 text-sm text-gray-600">
+        <div className="flex gap-4">
+          <span><span className="text-gray-400">上课方式：</span>{teacher.teaching_mode}</span>
+          <span><span className="text-gray-400">可用时间：</span>{teacher.available_time}</span>
+        </div>
         {teacher.teaching_mode !== '工作室' && teacher.service_areas && (
           <div><span className="text-gray-400">上门范围：</span>{teacher.service_areas}</div>
         )}
-        {String((teacher as Record<string, unknown>).studio_address || '') !== '' && (
-          <div className="col-span-2"><span className="text-gray-400">工作室地址：</span>{String((teacher as Record<string, unknown>).studio_address)}</div>
-        )}
-        <div><span className="text-gray-400">可用时间：</span>{teacher.available_time}</div>
-        <div><span className="text-gray-400">教龄：</span>{teacher.years_exp}年</div>
         <div><span className="text-gray-400">收费：</span>
           <span className="text-orange-500 font-medium">{teacher.price}</span>
         </div>
+        {studioAddress && (
+          <div><span className="text-gray-400">工作室地址：</span>{studioAddress}</div>
+        )}
       </div>
 
       {teacher.bio && (
