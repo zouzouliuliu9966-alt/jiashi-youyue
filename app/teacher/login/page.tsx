@@ -2,23 +2,31 @@
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import { Suspense } from 'react'
 
-export default function TeacherLogin() {
+function LoginForm() {
   const router = useRouter()
-  const [email, setEmail] = useState('')
+  const searchParams = useSearchParams()
+  const justRegistered = searchParams.get('registered') === '1'
+  const [account, setAccount] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const login = async () => {
-    if (!email || !password) { setError('请填写邮箱和密码'); return }
+    if (!account || !password) { setError('请填写账号和密码'); return }
     setLoading(true)
     setError('')
+
+    // 如果输入的是手机号，转换成邮箱格式
+    const email = /^\d{11}$/.test(account) ? `${account}@phone.jiashiyouyue.cn` : account
+
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     setLoading(false)
     if (error) {
-      setError('邮箱或密码错误，请重试')
+      setError('账号或密码错误，请重试')
     } else {
       router.push('/teacher/dashboard')
     }
@@ -30,11 +38,17 @@ export default function TeacherLogin() {
         <h1 className="text-xl font-bold text-gray-900 mb-1">老师登录</h1>
         <p className="text-sm text-gray-500 mb-6">家师有约 · 教师端</p>
 
+        {justRegistered && (
+          <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-700 mb-4">
+            注册成功！请用刚才的账号密码登录。
+          </div>
+        )}
+
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">邮箱</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-              placeholder="请输入邮箱" className="w-full border rounded-xl px-3 py-2.5 text-sm" />
+            <label className="block text-sm font-medium text-gray-700 mb-1">手机号或邮箱</label>
+            <input value={account} onChange={e => setAccount(e.target.value)}
+              placeholder="请输入手机号或邮箱" className="w-full border rounded-xl px-3 py-2.5 text-sm" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">密码</label>
@@ -51,10 +65,18 @@ export default function TeacherLogin() {
           </button>
         </div>
 
-        <p className="text-xs text-gray-400 text-center mt-6">
-          账号由平台管理员创建，如有问题请联系教务
+        <p className="text-sm text-gray-500 text-center mt-6">
+          还没有账号？<Link href="/teacher/register" className="text-orange-500 hover:text-orange-600">立即注册</Link>
         </p>
       </div>
     </main>
+  )
+}
+
+export default function TeacherLogin() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-400">加载中...</div>}>
+      <LoginForm />
+    </Suspense>
   )
 }
