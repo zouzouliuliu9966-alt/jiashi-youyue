@@ -37,5 +37,7 @@ export type Match = {
   booking_id: string
   teacher_id: string
   teacher_response: 'pending' | 'accepted' | 'declined'
+  payment_confirmed: boolean
+  payment_amount: string | null
   created_at: string
 }

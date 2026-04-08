@@ -19,6 +19,7 @@ export default function TeacherDashboard() {
   const [saved, setSaved] = useState(false)
   const [tab, setTab] = useState<'profile' | 'matches'>('profile')
   const [daysSinceUpdate, setDaysSinceUpdate] = useState(0)
+  const [payingMatch, setPayingMatch] = useState<MatchWithBooking | null>(null)
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -29,7 +30,6 @@ export default function TeacherDashboard() {
         setForm(data)
         const days = Math.floor((Date.now() - new Date(data.last_updated_at).getTime()) / 86400000)
         setDaysSinceUpdate(days)
-        // 加载推送给我的家长需求
         const { data: matchData } = await supabase
           .from('matches')
           .select('*, bookings(*)')
@@ -61,7 +61,22 @@ export default function TeacherDashboard() {
     setTimeout(() => setSaved(false), 2000)
   }
 
-  const respond = async (matchId: string, response: 'accepted' | 'declined') => {
+  const handleAccept = (m: MatchWithBooking) => {
+    setPayingMatch(m)
+  }
+
+  const confirmPaid = async () => {
+    if (!payingMatch || !teacher) return
+    const amount = teacher.price || '费用详询教务'
+    await supabase.from('matches').update({
+      teacher_response: 'accepted',
+      payment_amount: amount,
+    }).eq('id', payingMatch.id)
+    setMatches(ms => ms.map(m => m.id === payingMatch.id ? { ...m, teacher_response: 'accepted', payment_amount: amount, payment_confirmed: false } : m))
+    setPayingMatch(null)
+  }
+
+  const respond = async (matchId: string, response: 'declined') => {
     await supabase.from('matches').update({ teacher_response: response }).eq('id', matchId)
     setMatches(ms => ms.map(m => m.id === matchId ? { ...m, teacher_response: response } : m))
   }
@@ -85,16 +100,14 @@ export default function TeacherDashboard() {
         </div>
       </div>
 
-      {/* 更新提醒 */}
       {daysSinceUpdate >= 7 && (
         <div className="max-w-2xl mx-auto px-4 pt-3">
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-sm text-yellow-700">
-            ⚠️ 您的可用时间已 {daysSinceUpdate} 天未更新，请及时更新，避免影响家长匹配。
+            您的可用时间已 {daysSinceUpdate} 天未更新，请及时更新，避免影响家长匹配。
           </div>
         </div>
       )}
 
-      {/* Tab */}
       <div className="max-w-2xl mx-auto px-4 pt-4">
         <div className="flex gap-2 bg-gray-100 rounded-xl p-1">
           <button onClick={() => setTab('profile')}
@@ -115,7 +128,6 @@ export default function TeacherDashboard() {
       {tab === 'profile' && (
         <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
           <div className="bg-white rounded-2xl p-4 space-y-4">
-            {/* 头像 + 姓名 */}
             <div className="flex items-start gap-4">
               <div className="shrink-0">
                 {form.photo_url ? (
@@ -251,18 +263,39 @@ export default function TeacherDashboard() {
                   <p className="text-xs text-gray-400 mt-0.5">{new Date(m.created_at).toLocaleDateString('zh-CN')}</p>
                 </div>
                 <span className={`text-xs px-2 py-1 rounded-full ${
-                  m.teacher_response === 'accepted' ? 'bg-green-100 text-green-700' :
+                  m.teacher_response === 'accepted' && m.payment_confirmed ? 'bg-green-100 text-green-700' :
+                  m.teacher_response === 'accepted' && !m.payment_confirmed ? 'bg-orange-100 text-orange-700' :
                   m.teacher_response === 'declined' ? 'bg-gray-100 text-gray-500' :
                   'bg-yellow-100 text-yellow-700'
                 }`}>
-                  {m.teacher_response === 'accepted' ? '已接单' : m.teacher_response === 'declined' ? '已婉拒' : '待回复'}
+                  {m.teacher_response === 'accepted' && m.payment_confirmed ? '已匹配' :
+                   m.teacher_response === 'accepted' && !m.payment_confirmed ? '待确认收款' :
+                   m.teacher_response === 'declined' ? '已婉拒' : '待回复'}
                 </span>
               </div>
               <p className="text-sm text-gray-600 mb-1"><span className="text-gray-400">学生情况：</span>{m.bookings?.student_intro}</p>
               <p className="text-sm text-gray-600 mb-1"><span className="text-gray-400">可上课时间：</span>{m.bookings?.available_time}</p>
+
+              {/* 已付款确认：显示家长联系方式 */}
+              {m.teacher_response === 'accepted' && m.payment_confirmed && (
+                <div className="mt-3 bg-green-50 border border-green-200 rounded-xl p-3">
+                  <p className="text-sm font-medium text-green-800 mb-2">家长联系方式</p>
+                  <p className="text-sm text-green-700"><span className="text-green-500">手机：</span>{m.bookings?.phone}</p>
+                  <p className="text-sm text-green-700"><span className="text-green-500">微信：</span>{m.bookings?.wechat}</p>
+                </div>
+              )}
+
+              {/* 已接单但未确认收款 */}
+              {m.teacher_response === 'accepted' && !m.payment_confirmed && (
+                <div className="mt-3 bg-orange-50 border border-orange-200 rounded-xl p-3">
+                  <p className="text-sm text-orange-700">您已接单并完成付款，教务正在确认中，确认后将显示家长联系方式。</p>
+                </div>
+              )}
+
+              {/* 待回复：接单/婉拒按钮 */}
               {m.teacher_response === 'pending' && (
                 <div className="flex gap-2 mt-3">
-                  <button onClick={() => respond(m.id, 'accepted')}
+                  <button onClick={() => handleAccept(m)}
                     className="flex-1 bg-green-500 hover:bg-green-600 text-white rounded-xl py-2 text-sm font-medium">
                     接单
                   </button>
@@ -274,6 +307,50 @@ export default function TeacherDashboard() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* 付款弹窗 */}
+      {payingMatch && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-2 text-center">支付信息费</h3>
+            <p className="text-sm text-gray-500 text-center mb-4">
+              接单需支付首节课时费作为信息服务费
+            </p>
+
+            <div className="bg-orange-50 rounded-xl p-4 mb-4 text-center">
+              <p className="text-sm text-gray-500 mb-1">需求：{payingMatch.bookings?.student_grade}</p>
+              <p className="text-sm text-gray-500 mb-2">您的课时费标准：</p>
+              <p className="text-xl font-bold text-orange-600">{teacher.price || '请先设置价格'}</p>
+              <p className="text-xs text-gray-400 mt-1">请按对应年级课时费转账</p>
+            </div>
+
+            <div className="border rounded-xl p-4 mb-4 text-center">
+              <p className="text-sm text-gray-500 mb-3">请扫描下方收款码付款</p>
+              {/* 收款码图片 - 需要替换为实际收款码 */}
+              <div className="w-48 h-48 mx-auto bg-gray-100 rounded-xl flex items-center justify-center">
+                <img src="/payment-qrcode.png" alt="收款码" className="w-full h-full object-contain rounded-xl"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).parentElement!.innerHTML = '<p class="text-gray-400 text-sm">收款码加载中...</p>' }} />
+              </div>
+              <p className="text-xs text-gray-400 mt-2">支付宝扫码 · 家师有约教务</p>
+            </div>
+
+            <div className="flex gap-2">
+              <button onClick={confirmPaid}
+                className="flex-1 bg-green-500 hover:bg-green-600 text-white rounded-xl py-2.5 text-sm font-medium">
+                我已付款
+              </button>
+              <button onClick={() => setPayingMatch(null)}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl py-2.5 text-sm font-medium">
+                取消
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-400 text-center mt-3">
+              付款后教务将在24小时内确认，确认后您将看到家长联系方式
+            </p>
+          </div>
         </div>
       )}
     </main>
