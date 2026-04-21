@@ -15,6 +15,7 @@ export type Teacher = {
   years_exp: number
   last_updated_at: string
   is_visible: boolean
+  studio_address: string | null
   email: string
   created_at: string
 }
