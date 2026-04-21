@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { Teacher } from '@/lib/types'
 
 export default function BookingModal({ teacher, onClose }: { teacher: Teacher; onClose: () => void }) {
@@ -24,15 +23,22 @@ export default function BookingModal({ teacher, onClose }: { teacher: Teacher; o
       return
     }
     setLoading(true)
-    const { error } = await supabase.from('bookings').insert({
-      teacher_id: teacher.id,
-      ...form,
-    })
-    setLoading(false)
-    if (error) {
-      alert('提交失败，请重试')
-    } else {
-      setDone(true)
+    try {
+      const res = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teacher_id: teacher.id, ...form })
+      })
+      const json = await res.json()
+      setLoading(false)
+      if (json.error) {
+        alert('提交失败，请重试')
+      } else {
+        setDone(true)
+      }
+    } catch {
+      setLoading(false)
+      alert('网络连接失败，请重试')
     }
   }
 

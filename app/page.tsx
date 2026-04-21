@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { Teacher } from '@/lib/types'
 import TeacherCard from '@/components/TeacherCard'
 import BookingModal from '@/components/BookingModal'
@@ -19,13 +18,10 @@ export default function Home() {
   const [selected, setSelected] = useState<Teacher | null>(null)
 
   useEffect(() => {
-    supabase
-      .from('teachers')
-      .select('*')
-      .eq('is_visible', true)
-      .order('tier', { ascending: false })
-      .then(({ data }) => {
-        if (data) {
+    fetch('/api/teachers')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
           setTeachers(data)
           setFiltered(data)
         }

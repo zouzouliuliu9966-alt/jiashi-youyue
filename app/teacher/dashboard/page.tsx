@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { Teacher, Match, Booking } from '@/lib/types'
 import { useRouter } from 'next/navigation'
 
@@ -22,26 +21,26 @@ export default function TeacherDashboard() {
   const [payingMatch, setPayingMatch] = useState<MatchWithBooking | null>(null)
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) { router.push('/teacher/login'); return }
-      const { data } = await supabase.from('teachers').select('*').eq('email', user.email).single()
-      if (data) {
-        setTeacher(data)
-        setForm(data)
-        const days = Math.floor((Date.now() - new Date(data.last_updated_at).getTime()) / 86400000)
+    const teacherId = localStorage.getItem('teacher_id')
+    if (!teacherId) { router.push('/teacher/login'); return }
+
+    fetch(`/api/teacher/profile?id=${teacherId}`)
+      .then(res => res.json())
+      .then(json => {
+        if (json.error || !json.teacher) {
+          localStorage.clear()
+          router.push('/teacher/login')
+          return
+        }
+        setTeacher(json.teacher)
+        setForm(json.teacher)
+        const days = Math.floor((Date.now() - new Date(json.teacher.last_updated_at).getTime()) / 86400000)
         setDaysSinceUpdate(days)
-        const { data: matchData } = await supabase
-          .from('matches')
-          .select('*, bookings(*)')
-          .eq('teacher_id', data.id)
-          .order('created_at', { ascending: false })
-        if (matchData) setMatches(matchData as MatchWithBooking[])
-      } else {
+        setMatches(json.matches || [])
+      })
+      .catch(() => {
         router.push('/teacher/login')
-      }
-    }).catch(() => {
-      router.push('/teacher/login')
-    })
+      })
   }, [router])
 
   const set = (k: keyof Teacher, v: unknown) => setForm(f => ({ ...f, [k]: v }))
@@ -54,7 +53,11 @@ export default function TeacherDashboard() {
   const save = async () => {
     if (!teacher) return
     setSaving(true)
-    await supabase.from('teachers').update({ ...form, last_updated_at: new Date().toISOString() }).eq('id', teacher.id)
+    await fetch('/api/teacher/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ teacherId: teacher.id, form })
+    })
     setSaving(false)
     setSaved(true)
     setDaysSinceUpdate(0)
@@ -68,22 +71,41 @@ export default function TeacherDashboard() {
   const confirmPaid = async () => {
     if (!payingMatch || !teacher) return
     const amount = teacher.price || '费用详询教务'
-    await supabase.from('matches').update({
-      teacher_response: 'accepted',
-      payment_amount: amount,
-    }).eq('id', payingMatch.id)
+    await fetch('/api/teacher/respond', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ matchId: payingMatch.id, response: 'accepted', paymentAmount: amount })
+    })
     setMatches(ms => ms.map(m => m.id === payingMatch.id ? { ...m, teacher_response: 'accepted', payment_amount: amount, payment_confirmed: false } : m))
     setPayingMatch(null)
   }
 
   const respond = async (matchId: string, response: 'declined') => {
-    await supabase.from('matches').update({ teacher_response: response }).eq('id', matchId)
+    await fetch('/api/teacher/respond', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ matchId, response })
+    })
     setMatches(ms => ms.map(m => m.id === matchId ? { ...m, teacher_response: response } : m))
   }
 
-  const logout = async () => {
-    await supabase.auth.signOut()
+  const logout = () => {
+    localStorage.removeItem('teacher_token')
+    localStorage.removeItem('teacher_id')
+    localStorage.removeItem('teacher_name')
     router.push('/teacher/login')
+  }
+
+  const uploadAvatar = async (file: File) => {
+    if (!teacher) return
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('teacherId', teacher.id)
+    const res = await fetch('/api/teacher/upload-avatar', { method: 'POST', body: formData })
+    const json = await res.json()
+    if (json.url) {
+      set('photo_url', json.url)
+    }
   }
 
   if (!teacher) return <div className="min-h-screen flex items-center justify-center text-gray-400">加载中...</div>
@@ -139,14 +161,9 @@ export default function TeacherDashboard() {
                 )}
                 <label className="block mt-2 cursor-pointer">
                   <span className="text-xs text-orange-500 hover:text-orange-600">上传头像</span>
-                  <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => {
                     const file = e.target.files?.[0]
-                    if (!file || !teacher) return
-                    const ext = file.name.split('.').pop()
-                    const path = `${teacher.id}.${ext}`
-                    await supabase.storage.from('avatars').upload(path, file, { upsert: true })
-                    const { data } = supabase.storage.from('avatars').getPublicUrl(path)
-                    set('photo_url', data.publicUrl + '?t=' + Date.now())
+                    if (file) uploadAvatar(file)
                   }} />
                 </label>
               </div>
@@ -276,7 +293,6 @@ export default function TeacherDashboard() {
               <p className="text-sm text-gray-600 mb-1"><span className="text-gray-400">学生情况：</span>{m.bookings?.student_intro}</p>
               <p className="text-sm text-gray-600 mb-1"><span className="text-gray-400">可上课时间：</span>{m.bookings?.available_time}</p>
 
-              {/* 已付款确认：显示家长联系方式 */}
               {m.teacher_response === 'accepted' && m.payment_confirmed && (
                 <div className="mt-3 bg-green-50 border border-green-200 rounded-xl p-3">
                   <p className="text-sm font-medium text-green-800 mb-2">家长联系方式</p>
@@ -285,14 +301,12 @@ export default function TeacherDashboard() {
                 </div>
               )}
 
-              {/* 已接单但未确认收款 */}
               {m.teacher_response === 'accepted' && !m.payment_confirmed && (
                 <div className="mt-3 bg-orange-50 border border-orange-200 rounded-xl p-3">
                   <p className="text-sm text-orange-700">您已接单并完成付款，教务正在确认中，确认后将显示家长联系方式。</p>
                 </div>
               )}
 
-              {/* 待回复：接单/婉拒按钮 */}
               {m.teacher_response === 'pending' && (
                 <div className="flex gap-2 mt-3">
                   <button onClick={() => handleAccept(m)}
@@ -310,7 +324,6 @@ export default function TeacherDashboard() {
         </div>
       )}
 
-      {/* 付款弹窗 */}
       {payingMatch && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm p-6">
@@ -328,7 +341,6 @@ export default function TeacherDashboard() {
 
             <div className="border rounded-xl p-4 mb-4 text-center">
               <p className="text-sm text-gray-500 mb-3">请扫描下方收款码付款</p>
-              {/* 收款码图片 - 需要替换为实际收款码 */}
               <div className="w-48 h-48 mx-auto bg-gray-100 rounded-xl flex items-center justify-center">
                 <img src="/payment-qrcode.png" alt="收款码" className="w-full h-full object-contain rounded-xl"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).parentElement!.innerHTML = '<p class="text-gray-400 text-sm">收款码加载中...</p>' }} />

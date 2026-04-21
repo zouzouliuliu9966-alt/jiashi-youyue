@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Suspense } from 'react'
@@ -23,12 +22,27 @@ function LoginForm() {
     // 如果输入的是手机号，转换成邮箱格式
     const email = /^\d{11}$/.test(account) ? `${account}@phone.jiashiyouyue.cn` : account
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    setLoading(false)
-    if (error) {
-      setError('账号或密码错误，请重试')
-    } else {
-      router.push('/teacher/dashboard')
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      })
+      const json = await res.json()
+      setLoading(false)
+
+      if (!res.ok || json.error) {
+        setError(json.error || '登录失败，请重试')
+      } else {
+        // 存储登录信息到 localStorage
+        localStorage.setItem('teacher_token', json.token)
+        localStorage.setItem('teacher_id', json.teacher.id)
+        localStorage.setItem('teacher_name', json.teacher.name)
+        router.push('/teacher/dashboard')
+      }
+    } catch {
+      setLoading(false)
+      setError('网络连接失败，请重试')
     }
   }
 
