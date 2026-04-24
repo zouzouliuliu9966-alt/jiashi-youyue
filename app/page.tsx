@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { Teacher } from '@/lib/types'
 import TeacherCard from '@/components/TeacherCard'
 import BookingModal from '@/components/BookingModal'
@@ -42,9 +43,12 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-4">
-          <h1 className="text-xl font-bold text-gray-900">家师有约</h1>
-          <p className="text-sm text-gray-500">严选师资 · 专业匹配 · 放心托付</p>
+        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">家师有约</h1>
+            <p className="text-sm text-gray-500">严选师资 · 专业匹配 · 放心托付</p>
+          </div>
+          <Link href="/my-lessons" className="text-sm text-orange-500 hover:text-orange-600">我的课时</Link>
         </div>
       </div>
 
