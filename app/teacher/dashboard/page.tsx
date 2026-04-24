@@ -49,11 +49,22 @@ export default function TeacherDashboard() {
 
   useEffect(() => {
     const teacherId = localStorage.getItem('teacher_id')
-    if (!teacherId) { router.push('/teacher/login'); return }
+    const token = localStorage.getItem('teacher_token')
+    if (!teacherId || !token) { router.push('/teacher/login'); return }
 
-    fetch(`/api/teacher/profile?id=${teacherId}`)
-      .then(res => res.json())
+    fetch(`/api/teacher/profile?id=${teacherId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(async res => {
+        if (res.status === 401) {
+          localStorage.clear()
+          router.push('/teacher/login')
+          return null
+        }
+        return res.json()
+      })
       .then(json => {
+        if (!json) return
         if (json.error || !json.teacher) {
           localStorage.clear()
           router.push('/teacher/login')
@@ -72,24 +83,44 @@ export default function TeacherDashboard() {
 
   useEffect(() => {
     if (tab !== 'lessons' || !teacher || lessonsLoaded) return
-    fetch(`/api/teacher/lessons?teacherId=${teacher.id}`)
-      .then(res => res.json())
+    const token = localStorage.getItem('teacher_token') || ''
+    fetch(`/api/teacher/lessons?teacherId=${teacher.id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(async res => {
+        if (res.status === 401) {
+          localStorage.clear()
+          router.push('/teacher/login')
+          return null
+        }
+        return res.json()
+      })
       .then(json => {
+        if (!json) return
         setLessons(json.lessons || [])
         setLessonsLoaded(true)
       })
       .catch(() => setLessonsLoaded(true))
-  }, [tab, teacher, lessonsLoaded])
+  }, [tab, teacher, lessonsLoaded, router])
 
   const markCompleted = async (lessonId: string) => {
     if (!teacher) return
     setMarkingId(lessonId)
     try {
+      const token = localStorage.getItem('teacher_token') || ''
       const res = await fetch(`/api/teacher/lessons/${lessonId}/mark-completed`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ teacherId: teacher.id }),
       })
+      if (res.status === 401) {
+        localStorage.clear()
+        router.push('/teacher/login')
+        return
+      }
       const json = await res.json()
       if (json.error) {
         alert(json.error)
@@ -110,15 +141,35 @@ export default function TeacherDashboard() {
     set(key, arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val])
   }
 
+  const authHeaders = (): HeadersInit => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('teacher_token') || '' : ''
+    return { Authorization: `Bearer ${token}` }
+  }
+
+  const handle401 = (status: number) => {
+    if (status === 401) {
+      localStorage.clear()
+      router.push('/teacher/login')
+      return true
+    }
+    return false
+  }
+
   const save = async () => {
     if (!teacher) return
     setSaving(true)
-    await fetch('/api/teacher/profile', {
+    const res = await fetch('/api/teacher/profile', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ teacherId: teacher.id, form })
     })
     setSaving(false)
+    if (handle401(res.status)) return
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      alert('保存失败：' + (json.error || '未知错误'))
+      return
+    }
     setSaved(true)
     setDaysSinceUpdate(0)
     setTimeout(() => setSaved(false), 2000)
@@ -131,21 +182,33 @@ export default function TeacherDashboard() {
   const confirmPaid = async () => {
     if (!payingMatch || !teacher) return
     const amount = teacher.price || '费用详询教务'
-    await fetch('/api/teacher/respond', {
+    const res = await fetch('/api/teacher/respond', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ matchId: payingMatch.id, response: 'accepted', paymentAmount: amount })
     })
+    if (handle401(res.status)) return
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      alert('操作失败：' + (json.error || '未知错误'))
+      return
+    }
     setMatches(ms => ms.map(m => m.id === payingMatch.id ? { ...m, teacher_response: 'accepted', payment_amount: amount, payment_confirmed: false } : m))
     setPayingMatch(null)
   }
 
   const respond = async (matchId: string, response: 'declined') => {
-    await fetch('/api/teacher/respond', {
+    const res = await fetch('/api/teacher/respond', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ matchId, response })
     })
+    if (handle401(res.status)) return
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      alert('操作失败：' + (json.error || '未知错误'))
+      return
+    }
     setMatches(ms => ms.map(m => m.id === matchId ? { ...m, teacher_response: response } : m))
   }
 
@@ -161,7 +224,17 @@ export default function TeacherDashboard() {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('teacherId', teacher.id)
-    const res = await fetch('/api/teacher/upload-avatar', { method: 'POST', body: formData })
+    const res = await fetch('/api/teacher/upload-avatar', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: formData,
+    })
+    if (handle401(res.status)) return
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      alert('上传失败：' + (json.error || '未知错误'))
+      return
+    }
     const json = await res.json()
     if (json.url) {
       set('photo_url', json.url)

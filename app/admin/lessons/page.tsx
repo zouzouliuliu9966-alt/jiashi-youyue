@@ -64,14 +64,24 @@ export default function AdminLessons() {
     notes: '',
   })
 
+  const adminHeaders = useCallback((): HeadersInit => {
+    const pw = typeof window !== 'undefined' ? localStorage.getItem('admin_auth') || '' : ''
+    return { 'x-admin-password': pw }
+  }, [])
+
   const load = useCallback(async (currentTab: Tab) => {
     setLoading(true)
     const qs = currentTab === 'all' ? '' : `?status=${currentTab}`
-    const res = await fetch(`/api/admin/lessons${qs}`)
+    const res = await fetch(`/api/admin/lessons${qs}`, { headers: adminHeaders() })
+    if (res.status === 401) {
+      localStorage.removeItem('admin_auth')
+      router.push('/admin/login')
+      return
+    }
     const data = await res.json()
     if (Array.isArray(data)) setLessons(data)
     setLoading(false)
-  }, [])
+  }, [adminHeaders, router])
 
   useEffect(() => {
     if (typeof window !== 'undefined' && !localStorage.getItem('admin_auth')) {
@@ -92,7 +102,7 @@ export default function AdminLessons() {
     setBusyId(id)
     const res = await fetch(`/api/admin/lessons/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...adminHeaders() },
       body: JSON.stringify({ action }),
     })
     const json = await res.json()
@@ -107,7 +117,10 @@ export default function AdminLessons() {
   const del = async (id: string) => {
     if (!confirm('确定删除该课时订单？该操作不可恢复。')) return
     setBusyId(id)
-    const res = await fetch(`/api/admin/lessons/${id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/admin/lessons/${id}`, {
+      method: 'DELETE',
+      headers: adminHeaders(),
+    })
     setBusyId(null)
     if (!res.ok) {
       const json = await res.json().catch(() => ({}))
@@ -125,7 +138,7 @@ export default function AdminLessons() {
     setSubmitting(true)
     const res = await fetch('/api/admin/lessons', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...adminHeaders() },
       body: JSON.stringify({
         ...form,
         price_per_lesson: Number(form.price_per_lesson),

@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { supabaseAdmin } from '@/lib/supabase-admin'
+import { requireTeacher } from '@/lib/auth-helpers'
 
 // 获取教师资料和匹配记录
 export async function GET(req: Request) {
@@ -12,6 +8,9 @@ export async function GET(req: Request) {
   if (!teacherId) {
     return NextResponse.json({ error: '缺少参数' }, { status: 400 })
   }
+
+  const unauth = await requireTeacher(req, teacherId)
+  if (unauth) return unauth
 
   const { data: teacher } = await supabaseAdmin.from('teachers').select('*').eq('id', teacherId).single()
   if (!teacher) {
@@ -33,6 +32,9 @@ export async function PUT(req: Request) {
   if (!teacherId) {
     return NextResponse.json({ error: '缺少参数' }, { status: 400 })
   }
+
+  const unauth = await requireTeacher(req, teacherId)
+  if (unauth) return unauth
 
   const { error } = await supabaseAdmin
     .from('teachers')

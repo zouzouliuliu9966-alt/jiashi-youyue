@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { supabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdmin } from '@/lib/auth-helpers'
 
 export async function POST(req: Request) {
+  const unauth = requireAdmin(req)
+  if (unauth) return unauth
+
   const { email, name, password } = await req.json()
   if (!email || !name || !password) {
     return NextResponse.json({ error: '参数不完整' }, { status: 400 })

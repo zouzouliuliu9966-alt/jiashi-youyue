@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useCallback, useEffect, useState } from 'react'
 import { Booking, Teacher, Match } from '@/lib/types'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -18,49 +17,83 @@ export default function AdminBookings() {
   const [pushingId, setPushingId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'bookings' | 'payments'>('bookings')
 
+  const adminHeaders = useCallback((): HeadersInit => {
+    const pw = typeof window !== 'undefined' ? localStorage.getItem('admin_auth') || '' : ''
+    return { 'x-admin-password': pw }
+  }, [])
+
+  const logout = useCallback(() => {
+    localStorage.removeItem('admin_auth')
+    router.push('/admin/login')
+  }, [router])
+
+  const load = useCallback(async () => {
+    const res = await fetch('/api/admin/bookings', { headers: adminHeaders() })
+    if (res.status === 401) { logout(); return }
+    if (!res.ok) { setLoading(false); return }
+    const json = await res.json()
+    setBookings(json.bookings || [])
+    setTeachers(json.teachers || [])
+    setPendingPayments(json.pendingPayments || [])
+    setLoading(false)
+  }, [adminHeaders, logout])
+
   useEffect(() => {
     if (typeof window !== 'undefined' && !localStorage.getItem('admin_auth')) {
       router.push('/admin/login')
       return
     }
-    Promise.all([
-      supabase.from('bookings').select('*, teachers(*)').order('created_at', { ascending: false }),
-      supabase.from('teachers').select('*').eq('is_visible', true).order('tier', { ascending: false }),
-      supabase.from('matches').select('*, bookings(*), teachers(*)').eq('teacher_response', 'accepted').eq('payment_confirmed', false).order('created_at', { ascending: false }),
-    ]).then(([{ data: b }, { data: t }, { data: p }]) => {
-      if (b) setBookings(b as BookingWithTeacher[])
-      if (t) setTeachers(t)
-      if (p) setPendingPayments(p as MatchWithDetails[])
-      setLoading(false)
-    })
-  }, [router])
+    load()
+  }, [router, load])
 
   const pushToTeacher = async (booking: BookingWithTeacher, teacherId: string) => {
     setPushingId(booking.id)
-    const { data: existing } = await supabase.from('matches')
-      .select('id').eq('booking_id', booking.id).eq('teacher_id', teacherId).single()
-    if (!existing) {
-      await supabase.from('matches').insert({ booking_id: booking.id, teacher_id: teacherId })
-      await supabase.from('bookings').update({ status: 'sent' }).eq('id', booking.id)
-      setBookings(bs => bs.map(b => b.id === booking.id ? { ...b, status: 'sent' } : b))
-    }
+    const res = await fetch('/api/admin/matches', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...adminHeaders() },
+      body: JSON.stringify({ booking_id: booking.id, teacher_id: teacherId }),
+    })
     setPushingId(null)
+    if (res.status === 401) { logout(); return }
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      alert('推送失败：' + (json.error || '未知错误'))
+      return
+    }
+    setBookings(bs => bs.map(b => b.id === booking.id ? { ...b, status: 'sent' } : b))
     alert('已推送给老师，等待老师回复')
   }
 
   const confirmPayment = async (matchId: string, bookingId: string) => {
-    await supabase.from('matches').update({ payment_confirmed: true }).eq('id', matchId)
-    await supabase.from('bookings').update({ status: 'matched' }).eq('id', bookingId)
+    const res = await fetch(`/api/admin/matches/${matchId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...adminHeaders() },
+      body: JSON.stringify({ action: 'confirm_payment' }),
+    })
+    if (res.status === 401) { logout(); return }
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      alert('确认失败：' + (json.error || '未知错误'))
+      return
+    }
     setPendingPayments(ps => ps.filter(p => p.id !== matchId))
     setBookings(bs => bs.map(b => b.id === bookingId ? { ...b, status: 'matched' } : b))
   }
 
   const updateStatus = async (id: string, status: Booking['status']) => {
-    await supabase.from('bookings').update({ status }).eq('id', id)
+    const res = await fetch(`/api/admin/bookings/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...adminHeaders() },
+      body: JSON.stringify({ status }),
+    })
+    if (res.status === 401) { logout(); return }
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      alert('更新失败：' + (json.error || '未知错误'))
+      return
+    }
     setBookings(bs => bs.map(b => b.id === id ? { ...b, status } : b))
   }
-
-  const logout = () => { localStorage.removeItem('admin_auth'); router.push('/admin/login') }
 
   const statusLabel: Record<string, string> = {
     pending: '待处理', sent: '已推送', matched: '已匹配', closed: '已关闭'

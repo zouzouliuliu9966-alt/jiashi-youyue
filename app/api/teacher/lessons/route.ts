@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { requireTeacher } from '@/lib/auth-helpers'
 
 // 获取当前老师的所有课时订单
 export async function GET(req: Request) {
@@ -7,6 +8,9 @@ export async function GET(req: Request) {
   if (!teacherId) {
     return NextResponse.json({ error: '缺少参数' }, { status: 400 })
   }
+
+  const unauth = await requireTeacher(req, teacherId)
+  if (unauth) return unauth
 
   const { data, error } = await supabaseAdmin
     .from('lesson_orders')

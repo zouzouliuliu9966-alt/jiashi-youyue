@@ -1,16 +1,25 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { supabaseAdmin } from '@/lib/supabase-admin'
+import { requireTeacher } from '@/lib/auth-helpers'
 
 export async function POST(req: Request) {
   const { matchId, response, paymentAmount } = await req.json()
   if (!matchId || !response) {
     return NextResponse.json({ error: '缺少参数' }, { status: 400 })
   }
+
+  const { data: match, error: matchErr } = await supabaseAdmin
+    .from('matches')
+    .select('id, teacher_id')
+    .eq('id', matchId)
+    .single()
+
+  if (matchErr || !match) {
+    return NextResponse.json({ error: '匹配记录不存在' }, { status: 404 })
+  }
+
+  const unauth = await requireTeacher(req, match.teacher_id)
+  if (unauth) return unauth
 
   const updateData: Record<string, unknown> = { teacher_response: response }
   if (response === 'accepted' && paymentAmount) {

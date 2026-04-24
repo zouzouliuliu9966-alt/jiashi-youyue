@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useCallback, useEffect, useState } from 'react'
 import { Teacher } from '@/lib/types'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -16,46 +15,79 @@ export default function AdminTeachers() {
   const [newPassword, setNewPassword] = useState('')
   const [creating, setCreating] = useState(false)
 
+  const adminHeaders = useCallback((): HeadersInit => {
+    const pw = typeof window !== 'undefined' ? localStorage.getItem('admin_auth') || '' : ''
+    return { 'x-admin-password': pw }
+  }, [])
+
+  const logout = useCallback(() => {
+    localStorage.removeItem('admin_auth')
+    router.push('/admin/login')
+  }, [router])
+
+  const reload = useCallback(async () => {
+    const res = await fetch('/api/admin/teachers', { headers: adminHeaders() })
+    if (res.status === 401) { logout(); return }
+    const data = await res.json()
+    if (Array.isArray(data)) setTeachers(data)
+  }, [adminHeaders, logout])
+
   useEffect(() => {
     if (typeof window !== 'undefined' && !localStorage.getItem('admin_auth')) {
       router.push('/admin/login'); return
     }
-    supabase.from('teachers').select('*').order('tier', { ascending: false })
-      .then(({ data }) => { if (data) setTeachers(data); setLoading(false) })
-  }, [router])
+    reload().finally(() => setLoading(false))
+  }, [router, reload])
 
   const createTeacher = async () => {
     if (!newEmail || !newName || !newPassword) { alert('请填写完整信息'); return }
     setCreating(true)
-    // 通过API创建老师账号
     const res = await fetch('/api/admin/create-teacher', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...adminHeaders() },
       body: JSON.stringify({ email: newEmail, name: newName, password: newPassword })
     })
     const json = await res.json()
     setCreating(false)
-    if (json.error) {
-      alert('创建失败：' + json.error)
-    } else {
-      setAdding(false)
-      setNewEmail(''); setNewName(''); setNewPassword('')
-      const { data } = await supabase.from('teachers').select('*').order('tier', { ascending: false })
-      if (data) setTeachers(data)
+    if (res.status === 401) { logout(); return }
+    if (!res.ok) {
+      alert('创建失败：' + (json.error || '未知错误'))
+      return
     }
+    setAdding(false)
+    setNewEmail(''); setNewName(''); setNewPassword('')
+    reload()
   }
 
   const updateTier = async (id: string, tier: number) => {
-    await supabase.from('teachers').update({ tier }).eq('id', id)
+    const res = await fetch(`/api/admin/teachers/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...adminHeaders() },
+      body: JSON.stringify({ tier }),
+    })
+    if (res.status === 401) { logout(); return }
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      alert('更新失败：' + (json.error || '未知错误'))
+      return
+    }
     setTeachers(ts => ts.map(t => t.id === id ? { ...t, tier: tier as 1 | 2 | 3 } : t))
   }
 
   const toggleVisible = async (id: string, current: boolean) => {
-    await supabase.from('teachers').update({ is_visible: !current }).eq('id', id)
+    const res = await fetch(`/api/admin/teachers/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...adminHeaders() },
+      body: JSON.stringify({ is_visible: !current }),
+    })
+    if (res.status === 401) { logout(); return }
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      alert('更新失败：' + (json.error || '未知错误'))
+      return
+    }
     setTeachers(ts => ts.map(t => t.id === id ? { ...t, is_visible: !current } : t))
   }
-
-  const logout = () => { localStorage.removeItem('admin_auth'); router.push('/admin/login') }
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-400">加载中...</div>
 
