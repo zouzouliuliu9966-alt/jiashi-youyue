@@ -9,6 +9,30 @@ const GRADES_OPTIONS = ['一年级', '二年级', '三年级', '四年级', '五
 
 type MatchWithBooking = Match & { bookings: Booking }
 
+type LessonOrder = {
+  id: string
+  teacher_id: string
+  teacher_name: string | null
+  parent_phone: string
+  parent_wechat: string | null
+  parent_name: string | null
+  student_grade: string | null
+  subject: string | null
+  price_per_lesson: number
+  platform_rate: number
+  payment_status: 'pending' | 'paid'
+  payment_confirmed_at: string | null
+  lesson_status: 'pending' | 'completed'
+  teacher_marked_at: string | null
+  parent_confirmed_at: string | null
+  settled: boolean
+  settled_at: string | null
+  settle_amount: number | null
+  platform_fee: number | null
+  notes: string | null
+  created_at: string
+}
+
 export default function TeacherDashboard() {
   const router = useRouter()
   const [teacher, setTeacher] = useState<Teacher | null>(null)
@@ -16,9 +40,12 @@ export default function TeacherDashboard() {
   const [form, setForm] = useState<Partial<Teacher>>({})
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [tab, setTab] = useState<'profile' | 'matches'>('profile')
+  const [tab, setTab] = useState<'profile' | 'matches' | 'lessons'>('profile')
   const [daysSinceUpdate, setDaysSinceUpdate] = useState(0)
   const [payingMatch, setPayingMatch] = useState<MatchWithBooking | null>(null)
+  const [lessons, setLessons] = useState<LessonOrder[]>([])
+  const [lessonsLoaded, setLessonsLoaded] = useState(false)
+  const [markingId, setMarkingId] = useState<string | null>(null)
 
   useEffect(() => {
     const teacherId = localStorage.getItem('teacher_id')
@@ -42,6 +69,39 @@ export default function TeacherDashboard() {
         router.push('/teacher/login')
       })
   }, [router])
+
+  useEffect(() => {
+    if (tab !== 'lessons' || !teacher || lessonsLoaded) return
+    fetch(`/api/teacher/lessons?teacherId=${teacher.id}`)
+      .then(res => res.json())
+      .then(json => {
+        setLessons(json.lessons || [])
+        setLessonsLoaded(true)
+      })
+      .catch(() => setLessonsLoaded(true))
+  }, [tab, teacher, lessonsLoaded])
+
+  const markCompleted = async (lessonId: string) => {
+    if (!teacher) return
+    setMarkingId(lessonId)
+    try {
+      const res = await fetch(`/api/teacher/lessons/${lessonId}/mark-completed`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teacherId: teacher.id }),
+      })
+      const json = await res.json()
+      if (json.error) {
+        alert(json.error)
+      } else {
+        setLessons(ls => ls.map(l => l.id === lessonId ? { ...l, lesson_status: 'completed' as const, teacher_marked_at: new Date().toISOString() } : l))
+      }
+    } catch {
+      alert('操作失败，请稍后再试')
+    } finally {
+      setMarkingId(null)
+    }
+  }
 
   const set = (k: keyof Teacher, v: unknown) => setForm(f => ({ ...f, [k]: v }))
 
@@ -143,6 +203,10 @@ export default function TeacherDashboard() {
                 {matches.filter(m => m.teacher_response === 'pending').length}
               </span>
             )}
+          </button>
+          <button onClick={() => setTab('lessons')}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'lessons' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>
+            我的课时
           </button>
         </div>
       </div>
@@ -321,6 +385,92 @@ export default function TeacherDashboard() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {tab === 'lessons' && (
+        <div className="max-w-2xl mx-auto px-4 py-4 space-y-3">
+          {!lessonsLoaded ? (
+            <div className="text-center text-gray-400 py-16">加载中...</div>
+          ) : lessons.length === 0 ? (
+            <div className="text-center text-gray-400 py-16">暂无课时记录</div>
+          ) : lessons.map(l => {
+            const settleAmount = l.settle_amount ?? Number(l.price_per_lesson) * (1 - Number(l.platform_rate || 0.08))
+            const platformFee = l.platform_fee ?? Number(l.price_per_lesson) * Number(l.platform_rate || 0.08)
+            const needMark = l.payment_status === 'paid' && l.lesson_status !== 'completed'
+            return (
+              <div key={l.id} className="bg-white rounded-2xl p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {l.parent_name || '家长'}
+                      {l.student_grade && <span className="text-gray-500 font-normal"> · {l.student_grade}</span>}
+                      {l.subject && <span className="text-gray-500 font-normal"> · {l.subject}</span>}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {new Date(l.created_at).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  {l.settled && (
+                    <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">已结算</span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-y-1.5 text-xs mt-3 pt-3 border-t border-gray-100">
+                  <span className="text-gray-400">家长手机</span>
+                  <span className="text-gray-700 text-right">{l.parent_phone}</span>
+
+                  <span className="text-gray-400">单价</span>
+                  <span className="text-gray-700 text-right">¥{Number(l.price_per_lesson).toFixed(0)}</span>
+
+                  <span className="text-gray-400">付款状态</span>
+                  <span className={`text-right ${l.payment_status === 'paid' ? 'text-green-600' : 'text-orange-600'}`}>
+                    {l.payment_status === 'paid' ? '已付款' : '待付款'}
+                  </span>
+
+                  <span className="text-gray-400">上课状态</span>
+                  <span className={`text-right ${l.lesson_status === 'completed' ? 'text-green-600' : 'text-gray-500'}`}>
+                    {l.lesson_status === 'completed' ? '已完成' : '待上课'}
+                  </span>
+
+                  <span className="text-gray-400">家长确认</span>
+                  <span className={`text-right ${l.parent_confirmed_at ? 'text-green-600' : 'text-gray-500'}`}>
+                    {l.parent_confirmed_at ? '已确认' : '未确认'}
+                  </span>
+
+                  {l.settled ? (
+                    <>
+                      <span className="text-gray-400">结算金额</span>
+                      <span className="text-green-700 text-right font-medium">¥{Number(settleAmount).toFixed(2)}</span>
+                      <span className="text-gray-400">平台抽成</span>
+                      <span className="text-gray-500 text-right">¥{Number(platformFee).toFixed(2)}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-gray-400">预计结算</span>
+                      <span className="text-gray-600 text-right">¥{Number(settleAmount).toFixed(2)} <span className="text-gray-400">（抽8%）</span></span>
+                    </>
+                  )}
+                </div>
+
+                {needMark && (
+                  <button
+                    onClick={() => markCompleted(l.id)}
+                    disabled={markingId === l.id}
+                    className="w-full mt-3 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white rounded-xl py-2 text-sm font-medium"
+                  >
+                    {markingId === l.id ? '处理中...' : '标记完课'}
+                  </button>
+                )}
+
+                {l.notes && (
+                  <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-100">
+                    <span className="text-gray-400">备注：</span>{l.notes}
+                  </p>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
 
