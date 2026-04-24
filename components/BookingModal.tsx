@@ -6,6 +6,7 @@ import { Teacher } from '@/lib/types'
 export default function BookingModal({ teacher, onClose }: { teacher: Teacher; onClose: () => void }) {
   const [form, setForm] = useState({
     student_grade: '',
+    course_type: '一对一',
     phone: '',
     wechat: '',
     student_intro: '',
@@ -70,6 +71,21 @@ export default function BookingModal({ teacher, onClose }: { teacher: Teacher; o
                   <option key={g} value={g}>{g}</option>
                 ))}
               </select>
+            </Field>
+
+            <Field label="课程类型" required>
+              <div className="flex gap-3">
+                {['一对一', '小组课'].map(t => (
+                  <label key={t} className="flex items-center gap-1.5 cursor-pointer">
+                    <input type="radio" name="course_type" value={t} checked={form.course_type === t}
+                      onChange={e => set('course_type', e.target.value)}
+                      className="accent-orange-500" />
+                    <span className="text-sm text-gray-700">{t}</span>
+                    {t === '一对一' && <span className="text-xs text-orange-500">推荐</span>}
+                    {t === '小组课' && <span className="text-xs text-gray-400">名额有限</span>}
+                  </label>
+                ))}
+              </div>
             </Field>
 
             <Field label="手机号" required>

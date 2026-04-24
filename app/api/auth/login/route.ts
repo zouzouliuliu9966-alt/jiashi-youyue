@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
   if (error) {
-    return NextResponse.json({ error: '账号或密码错误' }, { status: 401 })
+    return NextResponse.json({ error: '账号或密码错误', detail: error.message }, { status: 401 })
   }
 
   // 获取教师信息

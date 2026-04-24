@@ -48,6 +48,19 @@ export default function Home() {
         </div>
       </div>
 
+      <div className="bg-gradient-to-b from-orange-500 to-orange-400 text-white">
+        <div className="max-w-2xl mx-auto px-4 py-10 text-center">
+          <h2 className="text-2xl font-bold mb-2">严选好老师，免费试课</h2>
+          <p className="text-orange-100 mb-6">试课满意再付费 · 教务全程跟进 · 不满意随时退</p>
+          <button
+            onClick={() => document.getElementById('teacher-list')?.scrollIntoView({ behavior: 'smooth' })}
+            className="bg-white text-orange-500 font-bold px-8 py-3 rounded-full shadow-lg hover:shadow-xl transition-all text-lg"
+          >
+            立即预约试课
+          </button>
+        </div>
+      </div>
+
       <div className="bg-white border-b">
         <div className="max-w-2xl mx-auto px-4 py-3 space-y-2">
           <div className="flex gap-2 overflow-x-auto pb-1">
@@ -80,7 +93,7 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-4 space-y-3">
+      <div id="teacher-list" className="max-w-2xl mx-auto px-4 py-4 space-y-3">
         {filtered.length === 0 ? (
           <div className="text-center text-gray-400 py-16">暂无符合条件的老师</div>
         ) : (
@@ -91,10 +104,41 @@ export default function Home() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 pb-8">
-        <div className="bg-orange-50 rounded-xl p-4 text-sm text-orange-700">
-          <p className="font-medium mb-1">平台保障</p>
-          <p>平台严选师资，为保障教学质量与资金安全，所有试听预约均由官方教务统一对接安排。</p>
+        <div className="bg-orange-50 rounded-xl p-6">
+          <h3 className="text-center font-bold text-gray-800 mb-6">平台保障</h3>
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div>
+              <div className="w-12 h-12 mx-auto mb-2 bg-orange-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <p className="font-medium text-sm text-gray-800 mb-1">免费试课</p>
+              <p className="text-xs text-gray-500">首次试课不收费，满意再付费</p>
+            </div>
+            <div>
+              <div className="w-12 h-12 mx-auto mb-2 bg-orange-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <p className="font-medium text-sm text-gray-800 mb-1">资金托管</p>
+              <p className="text-xs text-gray-500">课时费由平台托管，上完课再结算</p>
+            </div>
+            <div>
+              <div className="w-12 h-12 mx-auto mb-2 bg-orange-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <p className="font-medium text-sm text-gray-800 mb-1">教务跟进</p>
+              <p className="text-xs text-gray-500">专属教务全程对接，课后回访保障质量</p>
+            </div>
+          </div>
         </div>
+        <a href="/rules" className="block mt-4 text-center text-sm text-orange-500 hover:text-orange-600">
+          查看平台规则 →
+        </a>
       </div>
 
       {selected && <BookingModal teacher={selected} onClose={() => setSelected(null)} />}

@@ -8,14 +8,14 @@ const supabaseAdmin = createClient(
 
 export async function POST(req: Request) {
   const body = await req.json()
-  const { teacher_id, student_grade, phone, wechat, student_intro, available_time, address } = body
+  const { teacher_id, student_grade, course_type, phone, wechat, student_intro, available_time, address } = body
 
   if (!teacher_id || !student_grade || !phone || !wechat || !student_intro || !available_time || !address) {
     return NextResponse.json({ error: '请填写所有必填项' }, { status: 400 })
   }
 
   const { error } = await supabaseAdmin.from('bookings').insert({
-    teacher_id, student_grade, phone, wechat, student_intro, available_time, address,
+    teacher_id, student_grade, course_type: course_type || '一对一', phone, wechat, student_intro, available_time, address,
   })
 
   if (error) {
