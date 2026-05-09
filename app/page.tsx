@@ -17,6 +17,7 @@ export default function Home() {
   const [grade, setGrade] = useState('全部')
   const [tier, setTier] = useState('全部')
   const [selected, setSelected] = useState<Teacher | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetch('/api/teachers')
@@ -27,6 +28,7 @@ export default function Home() {
           setFiltered(data)
         }
       })
+      .finally(() => setLoading(false))
   }, [])
 
   useEffect(() => {
@@ -98,7 +100,9 @@ export default function Home() {
       </div>
 
       <div id="teacher-list" className="max-w-2xl mx-auto px-4 py-4 space-y-3">
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="text-center text-gray-400 py-16">加载中...</div>
+        ) : filtered.length === 0 ? (
           <div className="text-center text-gray-400 py-16">暂无符合条件的老师</div>
         ) : (
           filtered.map(teacher => (

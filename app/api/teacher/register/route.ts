@@ -7,7 +7,7 @@ const supabaseAdmin = createClient(
 )
 
 export async function POST(req: Request) {
-  const { name, email, phone, password } = await req.json()
+  const { name, email, password } = await req.json()
   if (!name || !email || !password) {
     return NextResponse.json({ error: '参数不完整' }, { status: 400 })
   }
@@ -27,7 +27,6 @@ export async function POST(req: Request) {
   const { error: dbError } = await supabaseAdmin.from('teachers').insert({
     name,
     email,
-    phone: phone || null,
     tier: 1,
     is_visible: false,
   })
