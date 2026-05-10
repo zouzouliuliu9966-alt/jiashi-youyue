@@ -571,13 +571,25 @@ export default function TeacherDashboard() {
               <p className="text-xs text-gray-400 mt-1">请按对应年级课时费转账</p>
             </div>
 
-            <div className="border rounded-xl p-4 mb-4 text-center">
-              <p className="text-sm text-gray-500 mb-3">请扫描下方收款码付款</p>
-              <div className="w-48 h-48 mx-auto bg-gray-100 rounded-xl flex items-center justify-center">
-                <img src="/payment-qrcode.png" alt="收款码" className="w-full h-full object-contain rounded-xl"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).parentElement!.innerHTML = '<p class="text-gray-400 text-sm">收款码加载中...</p>' }} />
+            <div className="border rounded-xl p-4 mb-4">
+              <p className="text-sm text-gray-500 mb-3 text-center">请扫码付款（微信 / 支付宝任选一种）</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="text-center">
+                  <p className="text-xs font-medium text-gray-700 mb-1.5">微信支付</p>
+                  <div className="aspect-square bg-gray-50 rounded-xl overflow-hidden">
+                    <img src="/wechat-qrcode.png" alt="微信收款码" className="w-full h-full object-contain"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                  </div>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-medium text-gray-700 mb-1.5">支付宝</p>
+                  <div className="aspect-square bg-gray-50 rounded-xl overflow-hidden">
+                    <img src="/alipay-qrcode.png" alt="支付宝收款码" className="w-full h-full object-contain"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                  </div>
+                </div>
               </div>
-              <p className="text-xs text-gray-400 mt-2">支付宝扫码 · 家师有约教务</p>
+              <p className="text-xs text-gray-400 mt-2 text-center">家师有约 · 教务收款</p>
             </div>
 
             <div className="flex gap-2">
