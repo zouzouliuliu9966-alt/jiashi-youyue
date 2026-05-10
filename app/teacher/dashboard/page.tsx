@@ -439,8 +439,17 @@ export default function TeacherDashboard() {
               )}
 
               {m.teacher_response === 'accepted' && !m.payment_confirmed && (
-                <div className="mt-3 bg-orange-50 border border-orange-200 rounded-xl p-3">
-                  <p className="text-sm text-orange-700">您已接单并完成付款，教务正在确认中，确认后将显示家长联系方式。</p>
+                <div className="mt-3 bg-orange-50 border border-orange-200 rounded-xl p-3 space-y-1.5">
+                  <p className="text-sm text-orange-800 font-medium">您已接单并完成付款</p>
+                  <p className="text-xs text-orange-700 leading-relaxed">
+                    教务工作时段（10:00–18:00）1 小时内确认收款，确认后立即显示家长联系方式；非工作时段付款，请白天联系教务。
+                  </p>
+                  <p className="text-xs text-orange-800 font-medium leading-relaxed">
+                    超过承诺时间未确认，平台主动全额退款。
+                  </p>
+                  <p className="text-xs text-orange-600">
+                    教务微信 <span className="font-medium">c_zzZlzy</span> ｜ 企业微信 <span className="font-medium">Jsyy8805@</span>
+                  </p>
                 </div>
               )}
 
@@ -582,9 +591,13 @@ export default function TeacherDashboard() {
               </button>
             </div>
 
-            <p className="text-xs text-gray-400 text-center mt-3">
-              付款后教务将在24小时内确认，确认后您将看到家长联系方式
-            </p>
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mt-3 text-xs text-blue-800 leading-relaxed space-y-1">
+              <p className="font-medium">⏱ 流程承诺</p>
+              <p>付款 → 教务工作时段（10:00–18:00）1 小时内确认 → 立即显示家长联系方式</p>
+              <p>非工作时段付款，请白天联系教务确认</p>
+              <p className="font-medium pt-0.5">📌 超过承诺时间未确认，平台主动全额退款</p>
+              <p className="text-blue-700">教务微信 <span className="font-medium">c_zzZlzy</span> ｜ 企业微信 <span className="font-medium">Jsyy8805@</span></p>
+            </div>
           </div>
         </div>
       )}

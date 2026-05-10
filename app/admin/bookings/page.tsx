@@ -143,28 +143,43 @@ export default function AdminBookings() {
         <div className="max-w-3xl mx-auto px-4 py-4 space-y-4">
           {pendingPayments.length === 0 ? (
             <div className="text-center text-gray-400 py-16">暂无待确认的收款</div>
-          ) : pendingPayments.map(p => (
-            <div key={p.id} className="bg-white rounded-2xl p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <span className="font-medium text-gray-900">{p.teachers?.name} 接单</span>
-                  <span className="text-orange-500 text-xs ml-2 bg-orange-50 px-2 py-0.5 rounded-full">待确认收款</span>
-                </div>
-                <span className="text-xs text-gray-400">{new Date(p.created_at).toLocaleString('zh-CN')}</span>
-              </div>
-              <div className="text-sm text-gray-600 space-y-1 mb-3">
-                <p><span className="text-gray-400">学生：</span>{p.bookings?.student_grade} · {p.bookings?.address}</p>
-                <p><span className="text-gray-400">学生情况：</span>{p.bookings?.student_intro}</p>
-                <p><span className="text-gray-400">家长手机：</span>{p.bookings?.phone}</p>
-                <p><span className="text-gray-400">家长微信：</span>{p.bookings?.wechat}</p>
-                <p><span className="text-gray-400">老师课时费：</span><span className="text-orange-600 font-medium">{p.payment_amount || p.teachers?.price || '未设置'}</span></p>
-              </div>
-              <button onClick={() => confirmPayment(p.id, p.booking_id)}
-                className="w-full bg-green-500 hover:bg-green-600 text-white rounded-xl py-2.5 text-sm font-medium">
-                确认已收款
-              </button>
-            </div>
-          ))}
+          ) : pendingPayments
+              .slice()
+              .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+              .map(p => {
+                const elapsedMin = Math.floor((Date.now() - new Date(p.created_at).getTime()) / 60000)
+                const isOverdue = elapsedMin >= 60
+                return (
+                  <div key={p.id} className={`rounded-2xl p-4 ${isOverdue ? 'bg-red-50 border-2 border-red-400' : 'bg-white'}`}>
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <span className="font-medium text-gray-900">{p.teachers?.name} 接单</span>
+                        {isOverdue ? (
+                          <span className="text-red-700 text-xs ml-2 bg-red-100 px-2 py-0.5 rounded-full font-medium">
+                            ⚠ 已超时 {elapsedMin} 分钟，请主动退款
+                          </span>
+                        ) : (
+                          <span className="text-orange-600 text-xs ml-2 bg-orange-50 px-2 py-0.5 rounded-full">
+                            待确认（剩余 {60 - elapsedMin} 分钟）
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-400">{new Date(p.created_at).toLocaleString('zh-CN')}</span>
+                    </div>
+                    <div className="text-sm text-gray-600 space-y-1 mb-3">
+                      <p><span className="text-gray-400">学生：</span>{p.bookings?.student_grade} · {p.bookings?.address}</p>
+                      <p><span className="text-gray-400">学生情况：</span>{p.bookings?.student_intro}</p>
+                      <p><span className="text-gray-400">家长手机：</span>{p.bookings?.phone}</p>
+                      <p><span className="text-gray-400">家长微信：</span>{p.bookings?.wechat}</p>
+                      <p><span className="text-gray-400">老师课时费：</span><span className="text-orange-600 font-medium">{p.payment_amount || p.teachers?.price || '未设置'}</span></p>
+                    </div>
+                    <button onClick={() => confirmPayment(p.id, p.booking_id)}
+                      className={`w-full text-white rounded-xl py-2.5 text-sm font-medium ${isOverdue ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}>
+                      {isOverdue ? '已超时 · 请确认或主动退款' : '确认已收款'}
+                    </button>
+                  </div>
+                )
+              })}
         </div>
       )}
 
