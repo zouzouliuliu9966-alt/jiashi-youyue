@@ -68,7 +68,7 @@ export default function TeacherCard({ teacher, onBook }: { teacher: Teacher; onB
 
       <button onClick={onBook}
         className="mt-3 w-full bg-orange-500 hover:bg-orange-600 text-white rounded-xl py-2.5 text-sm font-medium transition-colors">
-        预约该老师试课
+        预约该老师
       </button>
     </div>
   )

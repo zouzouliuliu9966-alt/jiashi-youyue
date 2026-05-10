@@ -55,7 +55,7 @@ export default function BookingModal({ teacher, onClose }: { teacher: Teacher; o
           <div className="px-4 py-12 text-center">
             <div className="text-4xl mb-4">✅</div>
             <p className="font-bold text-gray-900 text-lg mb-2">预约已提交！</p>
-            <p className="text-gray-500 text-sm">教务老师将在 24 小时内添加您的微信为您匹配，请留意好友申请。</p>
+            <p className="text-gray-500 text-sm">教务将在 24 小时内加您微信，根据需求为您推荐老师并对接首次课程，请留意好友申请。</p>
             <button onClick={onClose} className="mt-6 px-8 py-2.5 bg-orange-500 text-white rounded-xl text-sm">
               好的
             </button>

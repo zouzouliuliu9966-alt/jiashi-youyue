@@ -56,13 +56,13 @@ export default function Home() {
 
       <div className="bg-gradient-to-b from-orange-500 to-orange-400 text-white">
         <div className="max-w-2xl mx-auto px-4 py-10 text-center">
-          <h2 className="text-2xl font-bold mb-2">严选好老师，免费试课</h2>
-          <p className="text-orange-100 mb-6">试课满意再付费 · 教务全程跟进 · 不满意随时退</p>
+          <h2 className="text-2xl font-bold mb-2">严选南京家教 · 教务一对一匹配</h2>
+          <p className="text-orange-100 mb-6">持证教师 · 免费匹配 · 不满意可换老师</p>
           <button
             onClick={() => document.getElementById('teacher-list')?.scrollIntoView({ behavior: 'smooth' })}
             className="bg-white text-orange-500 font-bold px-8 py-3 rounded-full shadow-lg hover:shadow-xl transition-all text-lg"
           >
-            立即预约试课
+            立即查看老师
           </button>
         </div>
       </div>
@@ -121,8 +121,8 @@ export default function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <p className="font-medium text-sm text-gray-800 mb-1">免费试课</p>
-              <p className="text-xs text-gray-500">首次试课不收费，满意再付费</p>
+              <p className="font-medium text-sm text-gray-800 mb-1">严选师资</p>
+              <p className="text-xs text-gray-500">持证教师 · 教务面试 · 教学经验过关</p>
             </div>
             <div>
               <div className="w-12 h-12 mx-auto mb-2 bg-orange-100 rounded-full flex items-center justify-center">
@@ -130,8 +130,8 @@ export default function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
-              <p className="font-medium text-sm text-gray-800 mb-1">资金托管</p>
-              <p className="text-xs text-gray-500">课时费由平台托管，上完课再结算</p>
+              <p className="font-medium text-sm text-gray-800 mb-1">免费匹配</p>
+              <p className="text-xs text-gray-500">教务一对一推荐，不收家长任何中介费</p>
             </div>
             <div>
               <div className="w-12 h-12 mx-auto mb-2 bg-orange-100 rounded-full flex items-center justify-center">
@@ -140,7 +140,7 @@ export default function Home() {
                 </svg>
               </div>
               <p className="font-medium text-sm text-gray-800 mb-1">教务跟进</p>
-              <p className="text-xs text-gray-500">专属教务全程对接，课后回访保障质量</p>
+              <p className="text-xs text-gray-500">课后定期回访，不满意可协调换老师</p>
             </div>
           </div>
         </div>
