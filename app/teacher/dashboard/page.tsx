@@ -448,7 +448,7 @@ export default function TeacherDashboard() {
                     超过承诺时间未确认，平台主动全额退款。
                   </p>
                   <div className="flex items-start gap-3 pt-1">
-                    <img src="/contact-qrcode.png" alt="教务企业微信" className="w-24 h-24 shrink-0 object-contain rounded-lg bg-white p-1" />
+                    <img src="/contact-qrcode.png" alt="教务企业微信" className="w-28 h-44 shrink-0 object-contain rounded-lg bg-white" />
                     <div className="flex-1 text-xs text-orange-700 space-y-0.5">
                       <p className="font-medium">扫码加教务企业微信（推荐）</p>
                       <p>或搜索教务微信</p>
@@ -614,7 +614,7 @@ export default function TeacherDashboard() {
               <p>非工作时段付款，请白天联系教务确认</p>
               <p className="font-medium pt-0.5">📌 超过承诺时间未确认，平台主动全额退款</p>
               <div className="flex items-start gap-3 pt-1">
-                <img src="/contact-qrcode.png" alt="教务企业微信" className="w-24 h-24 shrink-0 object-contain rounded-lg bg-white p-1" />
+                <img src="/contact-qrcode.png" alt="教务企业微信" className="w-28 h-44 shrink-0 object-contain rounded-lg bg-white" />
                 <div className="flex-1 text-blue-700 space-y-0.5">
                   <p className="font-medium">扫码加教务企业微信（推荐）</p>
                   <p>或搜索教务微信</p>
