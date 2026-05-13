@@ -116,6 +116,7 @@ export default function AdminBookings() {
             <Link href="/admin/bookings" className="text-sm text-orange-500 font-medium">预约管理</Link>
             <Link href="/admin/teachers" className="text-sm text-gray-500 hover:text-gray-700">老师管理</Link>
             <Link href="/admin/lessons" className="text-sm text-gray-500 hover:text-gray-700">课时管理</Link>
+            <Link href="/admin/password-resets" className="text-sm text-gray-500 hover:text-gray-700">密码重置</Link>
           </div>
           <button onClick={logout} className="text-sm text-gray-400 hover:text-gray-600">退出</button>
         </div>

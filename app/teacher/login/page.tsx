@@ -65,7 +65,10 @@ function LoginForm() {
               placeholder="请输入手机号或邮箱" className="w-full border rounded-xl px-3 py-2.5 text-sm" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">密码</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-700">密码</label>
+              <Link href="/teacher/forgot-password" className="text-xs text-orange-500 hover:text-orange-600">忘记密码？</Link>
+            </div>
             <input type="password" value={password} onChange={e => setPassword(e.target.value)}
               placeholder="请输入密码" className="w-full border rounded-xl px-3 py-2.5 text-sm"
               onKeyDown={e => e.key === 'Enter' && login()} />
