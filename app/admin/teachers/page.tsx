@@ -143,11 +143,24 @@ export default function AdminTeachers() {
         ) : teachers.map(t => (
           <div key={t.id} className="bg-white rounded-2xl p-4">
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-medium text-gray-900">{t.name}</span>
-                <span className={`text-xs ${!t.is_visible ? 'text-gray-400 line-through' : 'text-gray-500'}`}>
-                  {t.email}
-                </span>
+                {/* 手机号是审核时联系老师用的，优先显示。
+                    手机号注册的老师 email 是 138xxxx@phone.jiashiyouyue.cn 这种内部伪邮箱，
+                    只有真邮箱才值得单独列出来 */}
+                {t.phone && (
+                  <a href={`tel:${t.phone}`} className="text-xs text-orange-600 hover:text-orange-700">
+                    {t.phone}
+                  </a>
+                )}
+                {t.email && !t.email.endsWith('@phone.jiashiyouyue.cn') && (
+                  <span className={`text-xs ${!t.is_visible ? 'text-gray-400 line-through' : 'text-gray-500'}`}>
+                    {t.email}
+                  </span>
+                )}
+                {!t.phone && !t.email && (
+                  <span className="text-xs text-gray-300">无联系方式</span>
+                )}
               </div>
               <button onClick={() => toggleVisible(t.id, t.is_visible)}
                 className={`text-xs px-2 py-1 rounded-full ${t.is_visible ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>

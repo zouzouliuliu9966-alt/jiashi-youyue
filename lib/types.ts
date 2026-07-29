@@ -16,7 +16,10 @@ export type Teacher = {
   last_updated_at: string
   is_visible: boolean
   studio_address: string | null
-  email: string
+  // email / phone 只在后台和教师本人的接口里出现，
+  // 家长端公开接口 /api/teachers 的字段白名单里没有这两个
+  email: string | null
+  phone: string | null
   created_at: string
 }
 
