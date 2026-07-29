@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Teacher, Match, Booking } from '@/lib/types'
 import { useRouter } from 'next/navigation'
+import { LessonStatus, isDone, lessonStatusLabel } from '@/lib/lesson-status'
 
 const SUBJECTS_OPTIONS = ['语文', '数学', '英语', '物理', '化学', '生物', '地理', '政治', '历史', '艺术类']
 const GRADES_OPTIONS = ['一年级', '二年级', '三年级', '四年级', '五年级', '六年级', '初一', '初二', '初三', '高一', '高二', '高三']
@@ -22,7 +23,7 @@ type LessonOrder = {
   platform_rate: number
   payment_status: 'pending' | 'paid'
   payment_confirmed_at: string | null
-  lesson_status: 'pending' | 'completed'
+  lesson_status: LessonStatus
   teacher_marked_at: string | null
   parent_confirmed_at: string | null
   settled: boolean
@@ -125,7 +126,7 @@ export default function TeacherDashboard() {
       if (json.error) {
         alert(json.error)
       } else {
-        setLessons(ls => ls.map(l => l.id === lessonId ? { ...l, lesson_status: 'completed' as const, teacher_marked_at: new Date().toISOString() } : l))
+        setLessons(ls => ls.map(l => l.id === lessonId ? { ...l, lesson_status: 'teacher_done' as const, teacher_marked_at: new Date().toISOString() } : l))
       }
     } catch {
       alert('操作失败，请稍后再试')
@@ -488,7 +489,7 @@ export default function TeacherDashboard() {
           ) : lessons.map(l => {
             const settleAmount = l.settle_amount ?? Number(l.price_per_lesson) * (1 - Number(l.platform_rate || 0.08))
             const platformFee = l.platform_fee ?? Number(l.price_per_lesson) * Number(l.platform_rate || 0.08)
-            const needMark = l.payment_status === 'paid' && l.lesson_status !== 'completed'
+            const needMark = l.payment_status === 'paid' && !isDone(l.lesson_status)
             return (
               <div key={l.id} className="bg-white rounded-2xl p-4">
                 <div className="flex items-start justify-between mb-2">
@@ -520,8 +521,8 @@ export default function TeacherDashboard() {
                   </span>
 
                   <span className="text-gray-400">上课状态</span>
-                  <span className={`text-right ${l.lesson_status === 'completed' ? 'text-green-600' : 'text-gray-500'}`}>
-                    {l.lesson_status === 'completed' ? '已完成' : '待上课'}
+                  <span className={`text-right ${isDone(l.lesson_status) ? 'text-green-600' : 'text-gray-500'}`}>
+                    {lessonStatusLabel(l.lesson_status)}
                   </span>
 
                   <span className="text-gray-400">家长确认</span>

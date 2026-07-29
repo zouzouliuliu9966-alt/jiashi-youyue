@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { requireTeacher } from '@/lib/auth-helpers'
+import { isDone } from '@/lib/lesson-status'
 
 // 老师标记某节课已完成
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -33,14 +34,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: '家长尚未付款，不能标记完课' }, { status: 400 })
   }
 
-  if (lesson.lesson_status === 'completed') {
+  if (isDone(lesson.lesson_status)) {
     return NextResponse.json({ error: '已完课，无需重复标记' }, { status: 400 })
   }
 
   const { error } = await supabaseAdmin
     .from('lesson_orders')
     .update({
-      lesson_status: 'completed',
+      lesson_status: 'teacher_done',
       teacher_marked_at: new Date().toISOString(),
     })
     .eq('id', id)

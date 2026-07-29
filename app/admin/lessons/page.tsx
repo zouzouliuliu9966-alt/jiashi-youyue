@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Teacher } from '@/lib/types'
+import { LessonStatus, isDone, isConfirmed, lessonStatusLabel } from '@/lib/lesson-status'
 
 type LessonOrder = {
   id: string
@@ -19,7 +20,7 @@ type LessonOrder = {
   platform_rate: number
   payment_status: 'pending' | 'paid'
   payment_confirmed_at: string | null
-  lesson_status: 'pending' | 'completed'
+  lesson_status: LessonStatus
   teacher_marked_at: string | null
   parent_confirmed_at: string | null
   settled: boolean
@@ -172,9 +173,13 @@ export default function AdminLessons() {
   const payLabel = (s: string) => (s === 'paid' ? '已付款' : '待付款')
   const payColor = (s: string) =>
     s === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-  const lessonLabel = (s: string) => (s === 'completed' ? '已完课' : '未完课')
-  const lessonColor = (s: string) =>
-    s === 'completed' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'
+  const lessonLabel = lessonStatusLabel
+  const lessonColor = (s: string) => {
+    if (isConfirmed(s)) return 'bg-green-100 text-green-700'
+    if (s === 'teacher_done') return 'bg-blue-100 text-blue-700'
+    if (s === 'cancelled') return 'bg-red-100 text-red-600'
+    return 'bg-gray-100 text-gray-500'
+  }
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -337,7 +342,7 @@ export default function AdminLessons() {
                       标记完课
                     </button>
                   )}
-                  {l.lesson_status === 'completed' && !l.parent_confirmed_at && (
+                  {isDone(l.lesson_status) && !l.parent_confirmed_at && (
                     <button
                       disabled={busyId === l.id}
                       onClick={() => act(l.id, 'parent_confirm')}
@@ -346,7 +351,7 @@ export default function AdminLessons() {
                       家长已确认
                     </button>
                   )}
-                  {l.lesson_status === 'completed' && !l.settled && (
+                  {isDone(l.lesson_status) && !l.settled && (
                     <button
                       disabled={busyId === l.id}
                       onClick={() => act(l.id, 'settle')}

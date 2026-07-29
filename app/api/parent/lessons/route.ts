@@ -11,9 +11,14 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: '手机号格式错误' }, { status: 400 })
   }
 
+  // 只回家长该看到的字段：平台抽成、老师结算金额不能下发到家长浏览器
   const { data, error } = await supabaseAdmin
     .from('lesson_orders')
-    .select('*')
+    .select(
+      'id, teacher_name, parent_phone, parent_name, student_grade, subject, ' +
+      'price_per_lesson, payment_status, payment_confirmed_at, lesson_status, ' +
+      'teacher_marked_at, parent_confirmed_at, settled, notes, created_at'
+    )
     .eq('parent_phone', phone)
     .order('created_at', { ascending: false })
 

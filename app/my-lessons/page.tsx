@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { LessonStatus, isDone, lessonStatusLabel } from '@/lib/lesson-status'
 
 type LessonOrder = {
   id: string
@@ -15,7 +16,7 @@ type LessonOrder = {
   platform_rate: number
   payment_status: 'pending' | 'paid'
   payment_confirmed_at: string | null
-  lesson_status: 'pending' | 'completed'
+  lesson_status: LessonStatus
   teacher_marked_at: string | null
   parent_confirmed_at: string | null
   settled: boolean
@@ -134,7 +135,6 @@ export default function MyLessonsPage() {
           <div className="space-y-3">
             {lessons.map(l => {
               const needConfirm = l.teacher_marked_at && !l.parent_confirmed_at
-              const settleAmount = l.settle_amount ?? Number(l.price_per_lesson) * (1 - Number(l.platform_rate || 0.08))
               return (
                 <div key={l.id} className="bg-white rounded-2xl p-4">
                   <div className="flex items-start justify-between mb-2">
@@ -163,8 +163,8 @@ export default function MyLessonsPage() {
                     </span>
 
                     <span className="text-gray-400">上课状态</span>
-                    <span className={`text-right ${l.lesson_status === 'completed' ? 'text-green-600' : 'text-gray-500'}`}>
-                      {l.lesson_status === 'completed' ? '已完成' : '待上课'}
+                    <span className={`text-right ${isDone(l.lesson_status) ? 'text-green-600' : 'text-gray-500'}`}>
+                      {lessonStatusLabel(l.lesson_status)}
                     </span>
 
                     <span className="text-gray-400">家长确认</span>
@@ -172,12 +172,6 @@ export default function MyLessonsPage() {
                       {l.parent_confirmed_at ? '已确认' : '未确认'}
                     </span>
 
-                    {l.settled && (
-                      <>
-                        <span className="text-gray-400">老师结算</span>
-                        <span className="text-gray-700 text-right">¥{Number(settleAmount).toFixed(2)}</span>
-                      </>
-                    )}
                   </div>
 
                   {needConfirm && (

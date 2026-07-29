@@ -39,6 +39,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { error } = await supabaseAdmin
     .from('lesson_orders')
     .update({
+      lesson_status: 'confirmed',
       parent_confirmed_at: new Date().toISOString(),
     })
     .eq('id', id)

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { requireAdmin } from '@/lib/auth-helpers'
+import { DONE_STATUSES } from '@/lib/lesson-status'
 
 // GET /api/admin/lessons?status=pending|paid|completed|settled&teacher_id=&phone=
 export async function GET(req: Request) {
@@ -24,7 +25,7 @@ export async function GET(req: Request) {
     query = query.eq('payment_status', 'paid').eq('lesson_status', 'pending')
   } else if (status === 'completed') {
     // 已完课但未结算
-    query = query.eq('lesson_status', 'completed').eq('settled', false)
+    query = query.in('lesson_status', DONE_STATUSES).eq('settled', false)
   } else if (status === 'settled') {
     query = query.eq('settled', true)
   }

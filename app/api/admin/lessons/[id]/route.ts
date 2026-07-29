@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { requireAdmin } from '@/lib/auth-helpers'
+import { isDone } from '@/lib/lesson-status'
 
 type Action = 'confirm_payment' | 'mark_completed' | 'parent_confirm' | 'settle'
 
@@ -43,18 +44,19 @@ export async function PATCH(
     if (current.payment_status !== 'paid') {
       return NextResponse.json({ error: '未付款的订单不能标记完课' }, { status: 400 })
     }
-    if (current.lesson_status === 'completed') {
+    if (isDone(current.lesson_status)) {
       return NextResponse.json({ error: '已完课，无需重复标记' }, { status: 400 })
     }
-    update.lesson_status = 'completed'
+    update.lesson_status = 'teacher_done'
     update.teacher_marked_at = now
   } else if (action === 'parent_confirm') {
     if (!current.teacher_marked_at) {
       return NextResponse.json({ error: '老师尚未标记完课' }, { status: 400 })
     }
+    update.lesson_status = 'confirmed'
     update.parent_confirmed_at = now
   } else if (action === 'settle') {
-    if (current.lesson_status !== 'completed') {
+    if (!isDone(current.lesson_status)) {
       return NextResponse.json({ error: '未完课的订单不能结算' }, { status: 400 })
     }
     if (current.settled) {
