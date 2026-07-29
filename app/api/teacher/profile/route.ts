@@ -23,7 +23,17 @@ export async function GET(req: Request) {
     .eq('teacher_id', teacherId)
     .order('created_at', { ascending: false })
 
-  return NextResponse.json({ teacher, matches: matches || [] })
+  // 家长联系方式是平台的收费点：老师接单并付过信息费、后台确认收款之后才能拿到。
+  // 只靠前端隐藏是没用的——老师打开开发者工具看这个接口的返回就全拿到了，
+  // 所以必须在服务端抹掉。
+  const safeMatches = (matches || []).map(m => {
+    if (m.payment_confirmed) return m
+    const b = m.bookings
+    if (!b) return m
+    return { ...m, bookings: { ...b, phone: null, wechat: null } }
+  })
+
+  return NextResponse.json({ teacher, matches: safeMatches })
 }
 
 // 老师能自己改的字段。tier（档位）、is_visible（是否展示）、email 必须由后台控制，
