@@ -29,10 +29,13 @@ export async function notifyWecom(markdown: string): Promise<void> {
   }
 }
 
-// 手机号打码，群里可能不止你一个人
-function maskPhone(p?: string | null): string {
-  if (!p || p.length < 7) return p || '—'
-  return `${p.slice(0, 3)}****${p.slice(-4)}`
+// 完整显示手机号：这是教务自己的通知群，看到就能直接打电话，
+// 不用再去后台查一遍。
+//
+// 注意别用 * 打码 —— 企业微信按 Markdown 解析，"139****0000" 里的
+// 星号会被当成加粗标记吃掉，还会让后面所有 **加粗** 全部错位。
+function fmtPhone(p?: string | null): string {
+  return p || '—'
 }
 
 export function bookingMessage(b: {
@@ -49,7 +52,7 @@ export function bookingMessage(b: {
   const lines = [
     '## 🔔 新预约',
     `**学生**：${b.student_grade || '—'}${b.course_type ? ` · ${b.course_type}` : ''}`,
-    `**家长**：${maskPhone(b.phone)}${b.wechat ? ` · 微信 ${b.wechat}` : ''}`,
+    `**家长**：${fmtPhone(b.phone)}${b.wechat ? ` · 微信 ${b.wechat}` : ''}`,
   ]
   if (b.teacher_name) lines.push(`**意向老师**：${b.teacher_name}`)
   if (b.available_time) lines.push(`**可上课时间**：${b.available_time}`)
@@ -79,7 +82,7 @@ export function newTeacherMessage(t: { name?: string | null; phone?: string | nu
   return [
     '## 👩‍🏫 新老师注册，待审核',
     `**称呼**：${t.name || '—'}`,
-    `**手机**：${maskPhone(t.phone)}`,
+    `**手机**：${fmtPhone(t.phone)}`,
     '',
     '> 审核后记得设置档位并开启展示',
     '> jiashiyouyue.com/admin/teachers',
