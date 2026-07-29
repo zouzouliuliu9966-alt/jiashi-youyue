@@ -252,6 +252,7 @@ export default function TeacherDashboard() {
             <p className="text-xs text-gray-400">家师有约 · 教师端</p>
           </div>
           <div className="flex items-center gap-3">
+            <button onClick={() => router.push('/teacher/rules')} className="text-sm text-gray-400 hover:text-gray-600">老师须知</button>
             <button onClick={() => router.push('/teacher/change-password')} className="text-sm text-gray-400 hover:text-gray-600">修改密码</button>
             <button onClick={logout} className="text-sm text-gray-400 hover:text-gray-600">退出</button>
           </div>
