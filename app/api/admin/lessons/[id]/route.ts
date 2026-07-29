@@ -33,6 +33,9 @@ export async function PATCH(
 
   const update: Record<string, unknown> = {}
   const now = new Date().toISOString()
+  // 状态流转必须带前置条件写回数据库，否则两个并发请求会同时通过上面的
+  // 判断然后都写入（例如重复结算）。guard 里的条件会拼进 UPDATE 的 WHERE。
+  const guard: Record<string, string | boolean> = {}
 
   if (action === 'confirm_payment') {
     if (current.payment_status === 'paid') {
@@ -40,6 +43,7 @@ export async function PATCH(
     }
     update.payment_status = 'paid'
     update.payment_confirmed_at = now
+    guard.payment_status = 'pending'
   } else if (action === 'mark_completed') {
     if (current.payment_status !== 'paid') {
       return NextResponse.json({ error: '未付款的订单不能标记完课' }, { status: 400 })
@@ -53,6 +57,8 @@ export async function PATCH(
     }
     update.lesson_status = 'teacher_done'
     update.teacher_marked_at = now
+    guard.lesson_status = 'pending'
+    guard.payment_status = 'paid'
   } else if (action === 'parent_confirm') {
     // 按状态判断，不能只看 teacher_marked_at 这个历史时间戳
     if (current.lesson_status !== 'teacher_done') {
@@ -63,6 +69,7 @@ export async function PATCH(
     }
     update.lesson_status = 'confirmed'
     update.parent_confirmed_at = now
+    guard.lesson_status = 'teacher_done'
   } else if (action === 'settle') {
     if (!isDone(current.lesson_status)) {
       return NextResponse.json({ error: '未完课的订单不能结算' }, { status: 400 })
@@ -78,6 +85,7 @@ export async function PATCH(
     update.settled_at = now
     update.platform_fee = platformFee
     update.settle_amount = settleAmount
+    guard.settled = false
   }
 
   if (notes !== undefined) update.notes = notes
@@ -86,14 +94,16 @@ export async function PATCH(
     return NextResponse.json({ error: '无操作' }, { status: 400 })
   }
 
-  const { data, error } = await supabaseAdmin
-    .from('lesson_orders')
-    .update(update)
-    .eq('id', id)
-    .select()
-    .single()
+  let q = supabaseAdmin.from('lesson_orders').update(update).eq('id', id)
+  for (const [col, val] of Object.entries(guard)) q = q.eq(col, val)
+
+  const { data, error } = await q.select().maybeSingle()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  // 没有命中行 = 状态在读取和写入之间被别的请求改掉了
+  if (!data) {
+    return NextResponse.json({ error: '订单状态已变化，请刷新后重试' }, { status: 409 })
+  }
   return NextResponse.json({ success: true, lesson: data })
 }
 

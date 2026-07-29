@@ -38,16 +38,23 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: '老师尚未标记完课' }, { status: 400 })
   }
 
-  const { error } = await supabaseAdmin
+  // 带前置状态条件写回，避免并发请求同时通过上面的判断后重复写入
+  const { data, error } = await supabaseAdmin
     .from('lesson_orders')
     .update({
       lesson_status: 'confirmed',
       parent_confirmed_at: new Date().toISOString(),
     })
     .eq('id', id)
+    .eq('lesson_status', 'teacher_done')
+    .select('id')
+    .maybeSingle()
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 })
+  }
+  if (!data) {
+    return NextResponse.json({ error: '订单状态已变化，请刷新后重试' }, { status: 409 })
   }
 
   return NextResponse.json({ success: true })

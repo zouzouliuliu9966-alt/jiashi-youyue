@@ -30,7 +30,7 @@ type LessonOrder = {
   settled_at: string | null
   settle_amount: number | null
   platform_fee: number | null
-  notes: string | null
+  // notes 是后台内部备注，不下发给老师/家长
   created_at: string
 }
 
@@ -555,11 +555,6 @@ export default function TeacherDashboard() {
                   </button>
                 )}
 
-                {l.notes && (
-                  <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-100">
-                    <span className="text-gray-400">备注：</span>{l.notes}
-                  </p>
-                )}
               </div>
             )
           })}
