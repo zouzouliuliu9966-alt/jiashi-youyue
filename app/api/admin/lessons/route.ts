@@ -13,9 +13,16 @@ export async function GET(req: Request) {
   const teacherId = searchParams.get('teacher_id')
   const phone = searchParams.get('phone')
 
+  // 分页：订单多起来以后不能一次全拉。count: 'exact' 让 Supabase 顺带返回总数
+  const page = Math.max(1, Number(searchParams.get('page') || 1))
+  const pageSize = Math.min(100, Math.max(1, Number(searchParams.get('pageSize') || 20)))
+  const from = (page - 1) * pageSize
+
   let query = supabaseAdmin
     .from('lesson_orders')
-    .select('*, teachers(id, name, tier), bookings(id, student_grade, address, available_time)')
+    .select('*, teachers(id, name, tier), bookings(id, student_grade, address, available_time)', {
+      count: 'exact',
+    })
     .order('created_at', { ascending: false })
 
   if (status === 'pending') {
@@ -33,9 +40,17 @@ export async function GET(req: Request) {
   if (teacherId) query = query.eq('teacher_id', teacherId)
   if (phone) query = query.ilike('parent_phone', `%${phone}%`)
 
-  const { data, error } = await query
+  const { data, error, count } = await query.range(from, from + pageSize - 1)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data || [])
+
+  // 老前端直接把响应当数组用，所以保持返回数组，分页信息放响应头
+  return NextResponse.json(data || [], {
+    headers: {
+      'x-total-count': String(count ?? 0),
+      'x-page': String(page),
+      'x-page-size': String(pageSize),
+    },
+  })
 }
 
 // POST /api/admin/lessons — 后台手工创建

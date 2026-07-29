@@ -35,6 +35,8 @@ type LessonOrder = {
 
 type Tab = 'all' | 'pending' | 'paid' | 'completed' | 'settled'
 
+const PAGE_SIZE = 20
+
 const tabLabels: Record<Tab, string> = {
   all: '全部',
   pending: '待付款',
@@ -50,6 +52,8 @@ export default function AdminLessons() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<Tab>('all')
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
 
   // 新建弹窗
   const [creating, setCreating] = useState(false)
@@ -70,10 +74,11 @@ export default function AdminLessons() {
     return { 'x-admin-password': pw }
   }, [])
 
-  const load = useCallback(async (currentTab: Tab) => {
+  const load = useCallback(async (currentTab: Tab, currentPage = 1) => {
     setLoading(true)
-    const qs = currentTab === 'all' ? '' : `?status=${currentTab}`
-    const res = await fetch(`/api/admin/lessons${qs}`, { headers: adminHeaders() })
+    const params = new URLSearchParams({ page: String(currentPage), pageSize: String(PAGE_SIZE) })
+    if (currentTab !== 'all') params.set('status', currentTab)
+    const res = await fetch(`/api/admin/lessons?${params}`, { headers: adminHeaders() })
     if (res.status === 401) {
       localStorage.removeItem('admin_auth')
       router.push('/admin/login')
@@ -81,6 +86,8 @@ export default function AdminLessons() {
     }
     const data = await res.json()
     if (Array.isArray(data)) setLessons(data)
+    setTotal(Number(res.headers.get('x-total-count') || 0))
+    setPage(currentPage)
     setLoading(false)
   }, [adminHeaders, router])
 
@@ -112,7 +119,7 @@ export default function AdminLessons() {
       alert('操作失败：' + (json.error || '未知错误'))
       return
     }
-    load(tab)
+    load(tab, page)
   }
 
   const del = async (id: string) => {
@@ -128,7 +135,7 @@ export default function AdminLessons() {
       alert('删除失败：' + (json.error || '未知错误'))
       return
     }
-    load(tab)
+    load(tab, page)
   }
 
   const submitCreate = async () => {
@@ -188,6 +195,7 @@ export default function AdminLessons() {
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4 overflow-x-auto">
             <h1 className="font-bold text-gray-900 shrink-0">管理后台</h1>
+            <Link href="/admin" className="text-sm text-gray-500 hover:text-gray-700 shrink-0">数据看板</Link>
             <Link href="/admin/bookings" className="text-sm text-gray-500 hover:text-gray-700 shrink-0">预约管理</Link>
             <Link href="/admin/teachers" className="text-sm text-gray-500 hover:text-gray-700 shrink-0">老师管理</Link>
             <Link href="/admin/lessons" className="text-sm text-orange-500 font-medium shrink-0">课时管理</Link>
@@ -216,7 +224,9 @@ export default function AdminLessons() {
 
       <div className="max-w-5xl mx-auto px-4 py-4 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-medium text-gray-900">课时订单（{lessons.length}条）</h2>
+          <h2 className="font-medium text-gray-900">
+            课时订单（共 {total} 条{total > PAGE_SIZE && `，第 ${page}/${Math.ceil(total / PAGE_SIZE)} 页`}）
+          </h2>
           <button
             onClick={() => setCreating(true)}
             className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-medium"
@@ -371,6 +381,29 @@ export default function AdminLessons() {
               </div>
             )
           })
+        )}
+
+        {/* 翻页 */}
+        {!loading && total > PAGE_SIZE && (
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <button
+              disabled={page <= 1}
+              onClick={() => load(tab, page - 1)}
+              className="px-4 py-2 rounded-lg text-sm bg-white border border-gray-200 text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              上一页
+            </button>
+            <span className="text-sm text-gray-500">
+              {page} / {Math.ceil(total / PAGE_SIZE)}
+            </span>
+            <button
+              disabled={page >= Math.ceil(total / PAGE_SIZE)}
+              onClick={() => load(tab, page + 1)}
+              className="px-4 py-2 rounded-lg text-sm bg-white border border-gray-200 text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              下一页
+            </button>
+          </div>
         )}
       </div>
 

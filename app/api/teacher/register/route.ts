@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { rateLimit } from '@/lib/rate-limit'
+import { notifyWecom, newTeacherMessage } from '@/lib/notify'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,6 +9,9 @@ const supabaseAdmin = createClient(
 )
 
 export async function POST(req: Request) {
+  const limited = rateLimit(req, 'teacher-register', 5, 60 * 60 * 1000)
+  if (limited) return limited
+
   const { name, email, phone, password } = await req.json()
   if (!name || !email || !password) {
     return NextResponse.json({ error: '参数不完整' }, { status: 400 })
@@ -44,6 +49,8 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ error: dbError.message }, { status: 400 })
   }
+
+  await notifyWecom(newTeacherMessage({ name, phone }))
 
   return NextResponse.json({ success: true, userId: authData.user?.id })
 }

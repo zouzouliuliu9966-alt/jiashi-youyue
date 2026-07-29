@@ -8,6 +8,8 @@ import { LessonStatus, isDone, lessonStatusLabel } from '@/lib/lesson-status'
 const SUBJECTS_OPTIONS = ['语文', '数学', '英语', '物理', '化学', '生物', '地理', '政治', '历史', '艺术类']
 const GRADES_OPTIONS = ['一年级', '二年级', '三年级', '四年级', '五年级', '六年级', '初一', '初二', '初三', '高一', '高二', '高三']
 
+const LESSON_PAGE_SIZE = 20
+
 type MatchWithBooking = Match & { bookings: Booking }
 
 type LessonOrder = {
@@ -46,6 +48,9 @@ export default function TeacherDashboard() {
   const [payingMatch, setPayingMatch] = useState<MatchWithBooking | null>(null)
   const [lessons, setLessons] = useState<LessonOrder[]>([])
   const [lessonsLoaded, setLessonsLoaded] = useState(false)
+  const [lessonsPage, setLessonsPage] = useState(1)
+  const [lessonsTotal, setLessonsTotal] = useState(0)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [markingId, setMarkingId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -85,7 +90,7 @@ export default function TeacherDashboard() {
   useEffect(() => {
     if (tab !== 'lessons' || !teacher || lessonsLoaded) return
     const token = localStorage.getItem('teacher_token') || ''
-    fetch(`/api/teacher/lessons?teacherId=${teacher.id}`, {
+    fetch(`/api/teacher/lessons?teacherId=${teacher.id}&page=1&pageSize=${LESSON_PAGE_SIZE}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async res => {
@@ -99,10 +104,35 @@ export default function TeacherDashboard() {
       .then(json => {
         if (!json) return
         setLessons(json.lessons || [])
+        setLessonsTotal(json.total || 0)
+        setLessonsPage(1)
         setLessonsLoaded(true)
       })
       .catch(() => setLessonsLoaded(true))
   }, [tab, teacher, lessonsLoaded, router])
+
+  // 老师课时多了以后「加载更多」，一次 20 条
+  const loadMoreLessons = async () => {
+    if (!teacher || loadingMore) return
+    setLoadingMore(true)
+    try {
+      const token = localStorage.getItem('teacher_token') || ''
+      const next = lessonsPage + 1
+      const res = await fetch(
+        `/api/teacher/lessons?teacherId=${teacher.id}&page=${next}&pageSize=${LESSON_PAGE_SIZE}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      )
+      if (res.status === 401) { localStorage.clear(); router.push('/teacher/login'); return }
+      const json = await res.json()
+      if (json?.lessons) {
+        setLessons(ls => [...ls, ...json.lessons])
+        setLessonsPage(next)
+        setLessonsTotal(json.total || 0)
+      }
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   const markCompleted = async (lessonId: string) => {
     if (!teacher) return
@@ -244,6 +274,24 @@ export default function TeacherDashboard() {
 
   if (!teacher) return <div className="min-h-screen flex items-center justify-center text-gray-400">加载中...</div>
 
+  // 资料完成度：这些填齐了教务才好给他匹配家长
+  const REQUIRED: { key: keyof Teacher; label: string }[] = [
+    { key: 'subjects', label: '教授科目' },
+    { key: 'grades', label: '教授年级' },
+    { key: 'price', label: '课时费' },
+    { key: 'years_exp', label: '教龄' },
+    { key: 'teacher_type', label: '教师类型' },
+    { key: 'teaching_mode', label: '授课方式' },
+    { key: 'available_time', label: '可上课时间' },
+    { key: 'highlight', label: '一句话亮点' },
+    { key: 'bio', label: '个人介绍' },
+    { key: 'photo_url', label: '头像' },
+  ]
+  const isFilled = (v: unknown) =>
+    Array.isArray(v) ? v.length > 0 : v !== null && v !== undefined && String(v).trim() !== ''
+  const missingFields = REQUIRED.filter(f => !isFilled(form[f.key] ?? teacher[f.key])).map(f => f.label)
+  const completeness = Math.round(((REQUIRED.length - missingFields.length) / REQUIRED.length) * 100)
+
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="bg-white shadow-sm sticky top-0 z-10">
@@ -259,6 +307,37 @@ export default function TeacherDashboard() {
           </div>
         </div>
       </div>
+
+      {/* 资料没填完的老师根本不会被展示，但他自己不知道，所以要明确告诉他还差什么 */}
+      {missingFields.length > 0 && (
+        <div className="max-w-2xl mx-auto px-4 pt-3">
+          <div className="bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-orange-800">
+                资料完成度 {completeness}%
+              </span>
+              {!teacher.is_visible && (
+                <span className="text-xs text-orange-600">审核通过后才会展示给家长</span>
+              )}
+            </div>
+            <div className="h-1.5 bg-orange-100 rounded-full overflow-hidden mb-2">
+              <div className="h-full bg-orange-500 rounded-full transition-all"
+                style={{ width: `${completeness}%` }} />
+            </div>
+            <p className="text-xs text-orange-700 leading-relaxed">
+              还差：{missingFields.join('、')}。填完教务才好安排匹配。
+            </p>
+          </div>
+        </div>
+      )}
+
+      {missingFields.length === 0 && !teacher.is_visible && (
+        <div className="max-w-2xl mx-auto px-4 pt-3">
+          <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-700">
+            资料已填完，等待教务审核。审核通过后就会展示给家长。
+          </div>
+        </div>
+      )}
 
       {daysSinceUpdate >= 7 && (
         <div className="max-w-2xl mx-auto px-4 pt-3">
@@ -558,6 +637,16 @@ export default function TeacherDashboard() {
               </div>
             )
           })}
+
+          {lessons.length < lessonsTotal && (
+            <button
+              onClick={loadMoreLessons}
+              disabled={loadingMore}
+              className="w-full bg-white border border-gray-200 text-gray-600 rounded-xl py-3 text-sm hover:bg-gray-50 disabled:opacity-50"
+            >
+              {loadingMore ? '加载中...' : `加载更多（还有 ${lessonsTotal - lessons.length} 条）`}
+            </button>
+          )}
         </div>
       )}
 

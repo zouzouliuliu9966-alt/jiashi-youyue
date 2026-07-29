@@ -20,7 +20,7 @@ export default function AdminLogin() {
     setLoading(false)
     if (res.ok) {
       localStorage.setItem('admin_auth', password)
-      router.push('/admin/bookings')
+      router.push('/admin')
     } else {
       setError('密码错误')
     }

@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { rateLimit } from '@/lib/rate-limit'
 
 // 家长按手机号查自己的课时订单
 export async function GET(req: Request) {
+  // 家长端没有账号体系，只靠手机号识别，所以必须挡住批量枚举手机号的行为
+  const limited = rateLimit(req, 'parent-lessons', 20, 10 * 60 * 1000)
+  if (limited) return limited
+
   const phone = new URL(req.url).searchParams.get('phone')?.trim()
   if (!phone) {
     return NextResponse.json({ error: '请提供手机号' }, { status: 400 })

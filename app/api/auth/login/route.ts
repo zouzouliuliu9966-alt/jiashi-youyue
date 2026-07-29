@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { rateLimit } from '@/lib/rate-limit'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,6 +13,9 @@ const supabaseAdmin = createClient(
 )
 
 export async function POST(req: Request) {
+  const limited = rateLimit(req, 'teacher-login', 10, 10 * 60 * 1000)
+  if (limited) return limited
+
   const { email, password } = await req.json()
   if (!email || !password) {
     return NextResponse.json({ error: '请填写账号和密码' }, { status: 400 })

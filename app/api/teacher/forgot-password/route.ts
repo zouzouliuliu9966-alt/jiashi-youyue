@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { rateLimit } from '@/lib/rate-limit'
 
 export async function POST(req: Request) {
+  const limited = rateLimit(req, 'forgot-password', 5, 60 * 60 * 1000)
+  if (limited) return limited
+
   const { contact } = await req.json()
   if (!contact || typeof contact !== 'string') {
     return NextResponse.json({ error: '请填写手机号或邮箱' }, { status: 400 })

@@ -4,41 +4,37 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import FAQAccordion, { FAQItem } from '@/components/FAQAccordion'
 
-const teacherFAQs: FAQItem[] = [
-  {
-    q: '怎么加入平台？',
-    a: '点击"教师注册"提交资料，平台审核通过后即可展示接单。',
-  },
-  {
-    q: '怎么接单？',
-    a: '家长预约后，平台推送需求到您的教师端。您查看学生情况后选择接单或婉拒。',
-  },
-  {
-    q: '课时费怎么结算？',
-    a: '家长可选择直接转账给您，或付到平台账户由平台转给您。具体结算方式由您与家长沟通确认。',
-  },
-  {
-    q: '平台收取什么费用？',
-    a: '平台向老师收取信息服务费（接单后解锁家长联系方式时支付一次），不向家长收取任何费用。具体标准在接单时会明确告知。',
-  },
-  {
-    q: '有什么要求？',
-    a: '接单后请在约定时间准时上课，每节课后及时与家长沟通反馈。平台会定期回访家长，保障双方权益。',
-  },
-]
-
 export default function TeacherRulesPage() {
   const router = useRouter()
-  const [ready, setReady] = useState(false)
+  const [faqs, setFaqs] = useState<FAQItem[] | null>(null)
 
+  // 正文不写在这个文件里 —— 客户端组件的内容会被编译进公开 JS bundle。
+  // 改为登录后向服务端要，服务端校验 token 通过才返回。
   useEffect(() => {
     const teacherId = localStorage.getItem('teacher_id')
     const token = localStorage.getItem('teacher_token')
     if (!teacherId || !token) { router.push('/teacher/login'); return }
-    setReady(true)
+
+    fetch(`/api/teacher/rules?teacherId=${teacherId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(async res => {
+        if (res.status === 401 || res.status === 403) {
+          localStorage.clear()
+          router.push('/teacher/login')
+          return null
+        }
+        return res.json()
+      })
+      .then(json => {
+        if (!json) return
+        if (json.error) { router.push('/teacher/login'); return }
+        setFaqs(json.faqs || [])
+      })
+      .catch(() => router.push('/teacher/login'))
   }, [router])
 
-  if (!ready) return <div className="min-h-screen flex items-center justify-center text-gray-400">加载中...</div>
+  if (!faqs) return <div className="min-h-screen flex items-center justify-center text-gray-400">加载中...</div>
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -52,7 +48,7 @@ export default function TeacherRulesPage() {
 
       {/* FAQ 列表 */}
       <div className="max-w-2xl mx-auto px-4 py-4">
-        <FAQAccordion items={teacherFAQs} />
+        <FAQAccordion items={faqs} />
       </div>
 
       {/* 底部提示 */}
