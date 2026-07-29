@@ -86,7 +86,7 @@ function LoginForm() {
           还没有账号？<Link href="/teacher/register" className="text-orange-500 hover:text-orange-600">立即注册</Link>
         </p>
         <p className="text-xs text-gray-400 text-center mt-2">
-          <Link href="/join" className="hover:text-gray-600">先了解平台怎么接单 →</Link>
+          <Link href="/laoshi" className="hover:text-gray-600">先了解平台怎么接单 →</Link>
         </p>
       </div>
     </main>

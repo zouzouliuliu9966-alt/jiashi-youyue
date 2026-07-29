@@ -148,9 +148,9 @@ export default function Home() {
           查看平台规则 →
         </a>
 
-        {/* 老师入口。放在页脚不抢家长的注意力，主要靠直接把 /join 链接发到教师群 */}
+        {/* 老师入口。放在页脚不抢家长的注意力，主要靠直接把 /laoshi 链接发到教师群 */}
         <div className="mt-8 pt-6 border-t border-gray-200 text-center">
-          <Link href="/join" className="text-sm text-gray-400 hover:text-gray-600">
+          <Link href="/laoshi" className="text-sm text-gray-400 hover:text-gray-600">
             我是老师，我要入驻 →
           </Link>
         </div>
