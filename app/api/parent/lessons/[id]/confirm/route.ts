@@ -16,7 +16,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // 校验该订单 parent_phone 必须匹配 phone 参数，且老师已标记完课
   const { data: lesson, error: fetchError } = await supabaseAdmin
     .from('lesson_orders')
-    .select('id, parent_phone, parent_confirmed_at, teacher_marked_at')
+    .select('id, parent_phone, parent_confirmed_at, teacher_marked_at, lesson_status')
     .eq('id', id)
     .single()
 
@@ -28,12 +28,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: '无权操作此订单' }, { status: 403 })
   }
 
-  if (!lesson.teacher_marked_at) {
-    return NextResponse.json({ error: '老师尚未标记完课' }, { status: 400 })
-  }
-
   if (lesson.parent_confirmed_at) {
     return NextResponse.json({ error: '已确认，无需重复操作' }, { status: 400 })
+  }
+
+  // 按状态判断，不能只看 teacher_marked_at 这个历史时间戳
+  // （否则已取消的订单只要曾被标记过完课，就还能被确认回 confirmed）
+  if (lesson.lesson_status !== 'teacher_done') {
+    return NextResponse.json({ error: '老师尚未标记完课' }, { status: 400 })
   }
 
   const { error } = await supabaseAdmin

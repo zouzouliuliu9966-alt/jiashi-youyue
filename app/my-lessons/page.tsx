@@ -81,7 +81,9 @@ export default function MyLessonsPage() {
       if (json.error) {
         alert(json.error)
       } else {
-        setLessons(ls => ls.map(l => l.id === id ? { ...l, parent_confirmed_at: new Date().toISOString() } : l))
+        setLessons(ls => ls.map(l => l.id === id
+          ? { ...l, lesson_status: 'confirmed' as const, parent_confirmed_at: new Date().toISOString() }
+          : l))
       }
     } catch {
       alert('操作失败，请稍后再试')

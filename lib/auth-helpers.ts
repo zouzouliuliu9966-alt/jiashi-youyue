@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from './supabase-admin'
+import { getAdminPassword } from './admin-password'
 
 export function requireAdmin(req: Request): NextResponse | null {
   const password = req.headers.get('x-admin-password')
-  const expected =
-    process.env.ADMIN_PASSWORD ||
-    process.env.NEXT_PUBLIC_ADMIN_PASSWORD ||
-    'jiashi2026'
+  const expected = getAdminPassword()
+  if (!expected) {
+    return NextResponse.json({ error: '后台未配置密码' }, { status: 500 })
+  }
   if (!password || password !== expected) {
     return NextResponse.json({ error: '未授权' }, { status: 401 })
   }

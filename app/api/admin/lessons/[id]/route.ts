@@ -23,7 +23,7 @@ export async function PATCH(
   // 读出当前订单，用于后续状态校验和结算金额计算
   const { data: current, error: readErr } = await supabaseAdmin
     .from('lesson_orders')
-    .select('lesson_status, payment_status, teacher_marked_at, settled, price_per_lesson, platform_rate')
+    .select('lesson_status, payment_status, teacher_marked_at, parent_confirmed_at, settled, price_per_lesson, platform_rate')
     .eq('id', id)
     .single()
 
@@ -47,11 +47,19 @@ export async function PATCH(
     if (isDone(current.lesson_status)) {
       return NextResponse.json({ error: '已完课，无需重复标记' }, { status: 400 })
     }
+    // 只有「待上课」能标完课；已取消的订单不能被重新激活
+    if (current.lesson_status !== 'pending') {
+      return NextResponse.json({ error: '该订单状态不能标记完课' }, { status: 400 })
+    }
     update.lesson_status = 'teacher_done'
     update.teacher_marked_at = now
   } else if (action === 'parent_confirm') {
-    if (!current.teacher_marked_at) {
-      return NextResponse.json({ error: '老师尚未标记完课' }, { status: 400 })
+    // 按状态判断，不能只看 teacher_marked_at 这个历史时间戳
+    if (current.lesson_status !== 'teacher_done') {
+      return NextResponse.json(
+        { error: current.parent_confirmed_at ? '已确认，无需重复操作' : '老师尚未标记完课' },
+        { status: 400 },
+      )
     }
     update.lesson_status = 'confirmed'
     update.parent_confirmed_at = now

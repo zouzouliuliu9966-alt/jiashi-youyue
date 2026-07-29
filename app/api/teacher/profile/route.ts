@@ -26,6 +26,14 @@ export async function GET(req: Request) {
   return NextResponse.json({ teacher, matches: matches || [] })
 }
 
+// 老师能自己改的字段。tier（档位）、is_visible（是否展示）、email 必须由后台控制，
+// 否则老师提交 {tier:3, is_visible:true} 就能自己升到精英档并上架
+const TEACHER_EDITABLE_FIELDS = [
+  'name', 'photo_url', 'bio', 'highlight', 'subjects', 'grades',
+  'price', 'years_exp', 'teacher_type', 'teaching_mode',
+  'service_areas', 'studio_address', 'available_time',
+] as const
+
 // 保存教师资料
 export async function PUT(req: Request) {
   const { teacherId, form } = await req.json()
@@ -36,9 +44,14 @@ export async function PUT(req: Request) {
   const unauth = await requireTeacher(req, teacherId)
   if (unauth) return unauth
 
+  const payload: Record<string, unknown> = { last_updated_at: new Date().toISOString() }
+  for (const key of TEACHER_EDITABLE_FIELDS) {
+    if (form && key in form) payload[key] = form[key]
+  }
+
   const { error } = await supabaseAdmin
     .from('teachers')
-    .update({ ...form, last_updated_at: new Date().toISOString() })
+    .update(payload)
     .eq('id', teacherId)
 
   if (error) {

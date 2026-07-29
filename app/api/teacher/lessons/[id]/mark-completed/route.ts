@@ -38,6 +38,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: '已完课，无需重复标记' }, { status: 400 })
   }
 
+  // 只有「待上课」能标完课；已取消的订单不能被重新激活
+  if (lesson.lesson_status !== 'pending') {
+    return NextResponse.json({ error: '该订单状态不能标记完课' }, { status: 400 })
+  }
+
   const { error } = await supabaseAdmin
     .from('lesson_orders')
     .update({
