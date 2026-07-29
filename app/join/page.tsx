@@ -85,8 +85,10 @@ export default function JoinPage() {
       <div className="bg-gradient-to-b from-orange-500 to-orange-400 text-white">
         <div className="max-w-2xl mx-auto px-4 py-12 text-center">
           <h2 className="text-2xl font-bold mb-3">南京家教老师招募</h2>
-          <p className="text-orange-100 mb-8 leading-relaxed">
-            教务帮您对接学生 · 课时费自己定 · 平台不抽课时费
+          {/* 拆两行写，挤在一行手机上会断成「平台不抽课时／费」 */}
+          <p className="text-orange-50 font-medium mb-1">教务帮您对接学生</p>
+          <p className="text-orange-100 text-sm mb-8">
+            课时费自己定 · 平台不抽成 · 接单才付费
           </p>
           <Link
             href="/teacher/register"
