@@ -20,9 +20,38 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+const SITE_URL = "https://www.jiashiyouyue.com";
+const TITLE = "家师有约 — 严选南京家教";
+const DESCRIPTION = "严选南京家教，教务一对一匹配。持证教师 · 免费匹配 · 不满意可换老师。";
+
 export const metadata: Metadata = {
-  title: "家师有约 — 家教师资匹配平台",
-  description: "家师有约，专业家教师资匹配服务，轻松找到适合孩子的好老师",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: TITLE,
+    template: "%s | 家师有约",
+  },
+  description: DESCRIPTION,
+  // 微信/QQ 里粘贴链接时靠这组标签渲染成卡片（图 + 标题 + 描述），
+  // 没有的话只显示一行光秃秃的网址
+  openGraph: {
+    type: "website",
+    siteName: "家师有约",
+    title: TITLE,
+    description: DESCRIPTION,
+    url: SITE_URL,
+    locale: "zh_CN",
+    images: [
+      // 微信会把卡片图裁成正方形，所以正文内容都收在图片中间的正方形区域内
+      { url: "/og-image.png", width: 1200, height: 630, alt: "家师有约 — 严选南京家教" },
+      { url: "/og-square.png", width: 800, height: 800, alt: "家师有约" },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+    images: ["/og-image.png"],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
