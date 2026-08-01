@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { rateLimit } from '@/lib/rate-limit'
 
 // 家长确认这节课确实上过
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  // 家长端唯一的写接口，之前漏了限流
+  const limited = rateLimit(req, 'parent-confirm', 20, 10 * 60 * 1000)
+  if (limited) return limited
+
   const { id } = await params
   const phone = new URL(req.url).searchParams.get('phone')?.trim()
 
