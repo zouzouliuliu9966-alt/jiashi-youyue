@@ -80,6 +80,8 @@
 - `app/admin/page.tsx` 看板说明「平台收入 = 课时费 × 8%」是错的了，改成如实说明；指标名改为「本月课时费抽成」
 - 新增 `supabase/platform_rate_default_0.sql`（**待手动执行**）
 
+**收尾（当天晚些时候）**：`supabase/platform_rate_default_0.sql` 已在 Supabase SQL Editor 执行。执行前查 `information_schema` 是 `0.08`，执行后是 `0`；又用「绕过 API 直接 POST 到 REST、不指定 platform_rate」实测了一次，拿到 0（这正是这条 SQL 要防的场景）。探测行已删，`lesson_orders` 仍是 0 行。
+
 **探测到的坑：数据库列默认值是 0.08，光改代码不够。** 建表 SQL 不在仓库里，建单接口也不写 `platform_rate`，全靠列默认值。用一条临时插入探明默认值确实是 0.08（探测行已删，表回到 0 行）。所以两手都做了：代码建单显式写 0（走 API 的单立即生效，不用等你跑 SQL），SQL 文件改列默认值（兜底手工插行的情况）。
 
 **留下的窟窿（已记进 HANDOFF 待办 1）**：抽成去掉后，平台收入**没有任何地方记账**了。`matches` 表只有 `payment_confirmed` 布尔，不存信息费金额，所以后台看板「本月课时费抽成」从此恒为 0，而真正的收入（信息费）根本不在系统里。有第一笔真实收入之前不急着做。

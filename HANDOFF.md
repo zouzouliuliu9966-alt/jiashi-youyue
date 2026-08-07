@@ -148,7 +148,7 @@ supabase/                  建表 SQL，手动去 Supabase SQL Editor 执行
 
 1. **✅ 已解决（2026-08-07）：招募页承诺和结算实现的矛盾**
    所有者决策**以文案为准，去掉 8% 抽成**。平台只收接单信息费这一道。详见 `LOG.md` 2026-08-07。
-   遗留一件事：**`supabase/platform_rate_default_0.sql` 需要去 Supabase SQL Editor 手动执行**，把列默认值从 0.08 改成 0。不执行也不影响走 API 建的单（代码显式写 0），只是绕过 API 手工插行会吃到旧默认值。
+   `supabase/platform_rate_default_0.sql` **已于 2026-08-07 在 Supabase SQL Editor 执行完毕**，`lesson_orders.platform_rate` 的列默认值已从 0.08 改成 0（执行前后都查了 `information_schema`，并实测绕过 API 直接插行拿到的是 0）。
 
    ⚠️ **平台收入现在没有任何地方记账。** 抽成去掉后，唯一被记录金额的收入来源没了；信息费是真正的收入，但 `matches` 表只有 `payment_confirmed` 布尔，**不存金额**。后台看板「本月课时费抽成」从此恒为 0。要看清平台到底赚了多少，得给 `matches` 加一个金额列 + 后台确认收款时填数 + 看板改成统计信息费。**有第一笔真实收入之前不用急着做。**
 
