@@ -95,6 +95,9 @@ export async function POST(req: Request) {
     student_grade: student_grade || null,
     subject: subject || null,
     price_per_lesson: Number(price_per_lesson),
+    // 平台不从课时费里抽点（招募页对老师的承诺），显式写 0 不依赖数据库列默认值。
+    // 字段保留，将来要对特定单子收服务费，改这里或后台单独设。
+    platform_rate: 0,
     notes: notes || null,
   }
   if (booking_id) insertPayload.booking_id = booking_id

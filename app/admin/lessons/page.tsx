@@ -242,7 +242,7 @@ export default function AdminLessons() {
         ) : (
           lessons.map(l => {
             const price = Number(l.price_per_lesson)
-            const rate = Number(l.platform_rate ?? 0.08)
+            const rate = Number(l.platform_rate ?? 0)
             const fee = +(price * rate).toFixed(2)
             const toTeacher = +(price - fee).toFixed(2)
             return (
@@ -317,7 +317,8 @@ export default function AdminLessons() {
                   {l.settled_at && (
                     <p>
                       结算：{new Date(l.settled_at).toLocaleString('zh-CN')} ·
-                      应付老师 ¥{l.settle_amount} · 平台 ¥{l.platform_fee}
+                      应付老师 ¥{l.settle_amount}
+                      {Number(l.platform_fee) > 0 && ` · 平台 ¥${l.platform_fee}`}
                     </p>
                   )}
                 </div>
@@ -326,9 +327,13 @@ export default function AdminLessons() {
                 {!l.settled && (
                   <div className="text-xs text-gray-500 mb-3">
                     预计：应付老师 <span className="text-green-600 font-medium">¥{toTeacher}</span>
-                    {' · '}
-                    平台抽成 <span className="text-orange-600 font-medium">¥{fee}</span>
-                    {' '}（{(rate * 100).toFixed(0)}%）
+                    {rate > 0 && (
+                      <>
+                        {' · '}
+                        平台抽成 <span className="text-orange-600 font-medium">¥{fee}</span>
+                        {' '}（{(rate * 100).toFixed(0)}%）
+                      </>
+                    )}
                   </div>
                 )}
 

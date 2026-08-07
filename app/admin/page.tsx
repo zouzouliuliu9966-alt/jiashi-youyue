@@ -125,12 +125,13 @@ export default function AdminHome() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <Stat label="本月新增预约" value={stats.bookingsThisMonth} unit="条" hint={`累计 ${stats.bookingsTotal} 条`} />
               <Stat label="本月课时流水" value={stats.revenueThisMonth} unit="元" />
-              <Stat label="本月平台收入" value={stats.platformFeeThisMonth} unit="元" hint={`累计 ${stats.platformFeeTotal} 元`} />
+              <Stat label="本月课时费抽成" value={stats.platformFeeThisMonth} unit="元" hint={`累计 ${stats.platformFeeTotal} 元`} />
               <Stat label="展示中老师" value={stats.teachersVisible} unit="位" hint={`另有 ${stats.teachersPending} 位未展示`} />
             </div>
 
             <p className="text-xs text-gray-400 pt-2">
-              流水和平台收入按「已结算」的课时订单统计。平台收入 = 课时费 × 8%。
+              流水和抽成按「已结算」的课时订单统计。平台已承诺不从课时费抽点，所以抽成正常应为 0；
+              真正的收入是接单信息费，目前系统没记录金额，不在这里统计。
             </p>
           </>
         )}

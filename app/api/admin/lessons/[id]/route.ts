@@ -78,7 +78,8 @@ export async function PATCH(
       return NextResponse.json({ error: '已结算，不能重复结算' }, { status: 400 })
     }
     const price = Number(current.price_per_lesson)
-    const rate = Number(current.platform_rate ?? 0.08)
+    // 默认 0：平台只收接单信息费，不从课时费里抽点
+    const rate = Number(current.platform_rate ?? 0)
     const platformFee = +(price * rate).toFixed(2)
     const settleAmount = +(price - platformFee).toFixed(2)
     update.settled = true

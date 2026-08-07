@@ -566,8 +566,10 @@ export default function TeacherDashboard() {
           ) : lessons.length === 0 ? (
             <div className="text-center text-gray-400 py-16">暂无课时记录</div>
           ) : lessons.map(l => {
-            const settleAmount = l.settle_amount ?? Number(l.price_per_lesson) * (1 - Number(l.platform_rate || 0.08))
-            const platformFee = l.platform_fee ?? Number(l.price_per_lesson) * Number(l.platform_rate || 0.08)
+            // 用 ?? 不能用 ||：rate 为 0（平台不抽成）是有效值，|| 会把它当假值吃掉退回 0.08
+            const rate = Number(l.platform_rate ?? 0)
+            const settleAmount = l.settle_amount ?? Number(l.price_per_lesson) * (1 - rate)
+            const platformFee = l.platform_fee ?? Number(l.price_per_lesson) * rate
             const needMark = l.payment_status === 'paid' && !isDone(l.lesson_status)
             return (
               <div key={l.id} className="bg-white rounded-2xl p-4">
@@ -613,13 +615,21 @@ export default function TeacherDashboard() {
                     <>
                       <span className="text-gray-400">结算金额</span>
                       <span className="text-green-700 text-right font-medium">¥{Number(settleAmount).toFixed(2)}</span>
-                      <span className="text-gray-400">平台抽成</span>
-                      <span className="text-gray-500 text-right">¥{Number(platformFee).toFixed(2)}</span>
+                      {/* 不抽成时不显示这行，别让老师看到「平台抽成 ¥0.00」平白生疑 */}
+                      {Number(platformFee) > 0 && (
+                        <>
+                          <span className="text-gray-400">平台抽成</span>
+                          <span className="text-gray-500 text-right">¥{Number(platformFee).toFixed(2)}</span>
+                        </>
+                      )}
                     </>
                   ) : (
                     <>
                       <span className="text-gray-400">预计结算</span>
-                      <span className="text-gray-600 text-right">¥{Number(settleAmount).toFixed(2)} <span className="text-gray-400">（抽8%）</span></span>
+                      <span className="text-gray-600 text-right">
+                        ¥{Number(settleAmount).toFixed(2)}
+                        {rate > 0 && <span className="text-gray-400">（抽{(rate * 100).toFixed(0)}%）</span>}
+                      </span>
                     </>
                   )}
                 </div>
