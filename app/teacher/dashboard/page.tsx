@@ -52,6 +52,12 @@ export default function TeacherDashboard() {
   const [lessonsTotal, setLessonsTotal] = useState(0)
   const [loadingMore, setLoadingMore] = useState(false)
   const [markingId, setMarkingId] = useState<string | null>(null)
+  // 注册后自动登录跳进来时带 ?welcome=1。直接读 location 而不用 useSearchParams，
+  // 免得为了一个欢迎条把整页包进 Suspense
+  const [justRegistered, setJustRegistered] = useState(false)
+  useEffect(() => {
+    setJustRegistered(new URLSearchParams(window.location.search).get('welcome') === '1')
+  }, [])
 
   useEffect(() => {
     const teacherId = localStorage.getItem('teacher_id')
@@ -274,22 +280,32 @@ export default function TeacherDashboard() {
 
   if (!teacher) return <div className="min-h-screen flex items-center justify-center text-gray-400">加载中...</div>
 
-  // 资料完成度：这些填齐了教务才好给他匹配家长
-  const REQUIRED: { key: keyof Teacher; label: string }[] = [
+  // 资料完成度分两档。
+  // 之前是一次性列全部 10 项，新老师刚被招募页的「填 3 项，1 分钟」送进来，
+  // 一进门看到 10 项待填，落差太大。拆成「教务匹配必需」和「加分项」两段，
+  // 让人先看到一个够得着的目标。
+  const CORE: { key: keyof Teacher; label: string }[] = [
     { key: 'subjects', label: '教授科目' },
     { key: 'grades', label: '教授年级' },
     { key: 'price', label: '课时费' },
-    { key: 'years_exp', label: '教龄' },
-    { key: 'teacher_type', label: '教师类型' },
-    { key: 'teaching_mode', label: '授课方式' },
+    { key: 'teaching_mode', label: '上课方式' },
     { key: 'available_time', label: '可上课时间' },
+  ]
+  const BONUS: { key: keyof Teacher; label: string }[] = [
+    { key: 'teacher_type', label: '身份类型' },
+    { key: 'years_exp', label: '教龄' },
     { key: 'highlight', label: '一句话亮点' },
     { key: 'bio', label: '个人介绍' },
     { key: 'photo_url', label: '头像' },
   ]
+  const REQUIRED = [...CORE, ...BONUS]
   const isFilled = (v: unknown) =>
     Array.isArray(v) ? v.length > 0 : v !== null && v !== undefined && String(v).trim() !== ''
-  const missingFields = REQUIRED.filter(f => !isFilled(form[f.key] ?? teacher[f.key])).map(f => f.label)
+  const missOf = (list: typeof CORE) =>
+    list.filter(f => !isFilled(form[f.key] ?? teacher[f.key])).map(f => f.label)
+  const missingCore = missOf(CORE)
+  const missingBonus = missOf(BONUS)
+  const missingFields = [...missingCore, ...missingBonus]
   const completeness = Math.round(((REQUIRED.length - missingFields.length) / REQUIRED.length) * 100)
 
   return (
@@ -308,6 +324,14 @@ export default function TeacherDashboard() {
         </div>
       </div>
 
+      {justRegistered && (
+        <div className="max-w-2xl mx-auto px-4 pt-3">
+          <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-800">
+            注册成功，已经帮您登录好了。下面把资料补一下，教务就能开始给您对接学生。
+          </div>
+        </div>
+      )}
+
       {/* 资料没填完的老师根本不会被展示，但他自己不知道，所以要明确告诉他还差什么 */}
       {missingFields.length > 0 && (
         <div className="max-w-2xl mx-auto px-4 pt-3">
@@ -324,9 +348,22 @@ export default function TeacherDashboard() {
               <div className="h-full bg-orange-500 rounded-full transition-all"
                 style={{ width: `${completeness}%` }} />
             </div>
-            <p className="text-xs text-orange-700 leading-relaxed">
-              还差：{missingFields.join('、')}。填完教务才好安排匹配。
-            </p>
+            {missingCore.length > 0 ? (
+              <p className="text-xs text-orange-700 leading-relaxed">
+                <span className="font-medium">先填这 {missingCore.length} 项，教务就能开始给您匹配：</span>
+                {missingCore.join('、')}。
+                {missingBonus.length > 0 && (
+                  <span className="text-orange-600">
+                    {' '}其余 {missingBonus.length} 项（{missingBonus.join('、')}）影响家长选中率，之后再补也行。
+                  </span>
+                )}
+              </p>
+            ) : (
+              <p className="text-xs text-orange-700 leading-relaxed">
+                <span className="font-medium">匹配需要的都齐了。</span>
+                {' '}再补上 {missingBonus.join('、')}，家长挑老师时更容易选中您。
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -429,9 +466,12 @@ export default function TeacherDashboard() {
               </div>
             </Field>
 
-            <Field label="一句话亮点">
+            {/* 这段会直接展示在家长端（TeacherCard 的 highlight），属于对外广告文案。
+                《广告法》24 条禁止教育培训广告对升学、考试成绩作保证性承诺，
+                所以示例和提示都写「资历/擅长」，不写「提分 N 分」这类效果承诺。 */}
+            <Field label="一句话亮点" hint="写教学经历和擅长的点。别写「保证提分 X 分」「保过」这类承诺，会展示给家长且不合规">
               <input value={form.highlight || ''} onChange={e => set('highlight', e.target.value)}
-                className="w-full border rounded-xl px-3 py-2.5 text-sm" placeholder="如：连续3年送学生语文成绩提升20分" />
+                className="w-full border rounded-xl px-3 py-2.5 text-sm" placeholder="如：带过三届初三毕业班，擅长文言文和作文批改" />
             </Field>
 
             <Field label="个人简介">
@@ -440,9 +480,9 @@ export default function TeacherDashboard() {
                 placeholder="简要介绍您的教学风格和优势..." />
             </Field>
 
-            <Field label="上课方式">
-              <div className="flex gap-2">
-                {['上门', '工作室', '均可'].map(m => (
+            <Field label="上课方式" hint="选「均可」表示上门 / 工作室 / 网课都接受">
+              <div className="flex gap-2 flex-wrap">
+                {['上门', '工作室', '网课', '均可'].map(m => (
                   <button key={m} onClick={() => set('teaching_mode', m)}
                     className={`px-4 py-1.5 rounded-full text-sm ${form.teaching_mode === m ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
                     {m}

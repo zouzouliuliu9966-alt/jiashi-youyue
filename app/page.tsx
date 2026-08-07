@@ -9,6 +9,13 @@ import BookingModal from '@/components/BookingModal'
 const SUBJECTS = ['全部', '语文', '数学', '英语', '物理', '化学', '生物', '地理', '政治', '历史', '艺术类']
 const GRADES = ['全部', '一年级', '二年级', '三年级', '四年级', '五年级', '六年级', '初一', '初二', '初三', '高一', '高二', '高三']
 const TIERS = ['全部', '⭐⭐⭐ 精英档', '⭐⭐ 进阶档', '⭐ 基础档']
+const MODES = ['全部', '可上门', '支持网课', '去工作室']
+// 「均可」的老师三种方式都接受，所以每个筛选项都该把 TA 算进来
+const MODE_MATCH: Record<string, string[]> = {
+  '可上门': ['上门', '均可'],
+  '支持网课': ['网课', '均可'],
+  '去工作室': ['工作室', '均可'],
+}
 
 export default function Home() {
   const [teachers, setTeachers] = useState<Teacher[]>([])
@@ -16,6 +23,7 @@ export default function Home() {
   const [subject, setSubject] = useState('全部')
   const [grade, setGrade] = useState('全部')
   const [tier, setTier] = useState('全部')
+  const [mode, setMode] = useState('全部')
   const [selected, setSelected] = useState<Teacher | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -39,8 +47,12 @@ export default function Home() {
       const tierMap: Record<string, number> = { '⭐⭐⭐ 精英档': 3, '⭐⭐ 进阶档': 2, '⭐ 基础档': 1 }
       list = list.filter(t => t.tier === tierMap[tier])
     }
+    if (mode !== '全部') {
+      const accepted = MODE_MATCH[mode] || []
+      list = list.filter(t => accepted.includes(t.teaching_mode))
+    }
     setFiltered(list)
-  }, [subject, grade, tier, teachers])
+  }, [subject, grade, tier, mode, teachers])
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -93,6 +105,15 @@ export default function Home() {
               <button key={t} onClick={() => setTier(t)}
                 className={`shrink-0 px-3 py-1 rounded-full text-sm ${tier === t ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
                 {t}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            <span className="text-xs text-gray-500 shrink-0 self-center">方式</span>
+            {MODES.map(m => (
+              <button key={m} onClick={() => setMode(m)}
+                className={`shrink-0 px-3 py-1 rounded-full text-sm ${mode === m ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                {m}
               </button>
             ))}
           </div>

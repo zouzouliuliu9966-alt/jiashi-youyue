@@ -51,13 +51,18 @@ export default function TeacherCard({ teacher, onBook }: { teacher: Teacher; onB
           <span><span className="text-gray-400">上课方式：</span>{teacher.teaching_mode}</span>
           <span><span className="text-gray-400">可用时间：</span>{teacher.available_time}</span>
         </div>
-        {teacher.teaching_mode !== '工作室' && teacher.service_areas && (
+        {/* 正向列举，别写 `!== '工作室'` —— 加了「网课」以后反向条件会让纯网课老师
+            也显示「上门范围」，而网课老师根本不上门 */}
+        {(teacher.teaching_mode === '上门' || teacher.teaching_mode === '均可') && teacher.service_areas && (
           <div><span className="text-gray-400">上门范围：</span>{teacher.service_areas}</div>
         )}
         <div><span className="text-gray-400">收费：</span>
           <span className="text-orange-500 font-medium">{teacher.price}</span>
         </div>
-        {studioAddress && (
+        {/* 和上门范围同样要看 teaching_mode，不能只看字段有没有值：
+            老师原本选「工作室」填过地址、后来改成「网课」，地址还留在库里，
+            只判断 studioAddress 的话家长会以为还要去线下 */}
+        {(teacher.teaching_mode === '工作室' || teacher.teaching_mode === '均可') && studioAddress && (
           <div><span className="text-gray-400">工作室地址：</span>{studioAddress}</div>
         )}
       </div>

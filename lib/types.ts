@@ -8,7 +8,11 @@ export type Teacher = {
   grades: string[]
   highlight: string
   bio: string
-  teaching_mode: '上门' | '工作室' | '均可'
+  // 「均可」= 上门 / 工作室 / 网课 都接受。
+  // 数据库这列没有 CHECK 约束（实测），加新值不用先跑 SQL；
+  // 但判断上课方式时别写 `!== '工作室'` 这种反向条件 —— 一加新值就会把新值
+  // 错误地归进「要填上门范围」那一类。一律正向列举。
+  teaching_mode: '上门' | '工作室' | '网课' | '均可'
   service_areas: string | null
   available_time: string
   price: string
