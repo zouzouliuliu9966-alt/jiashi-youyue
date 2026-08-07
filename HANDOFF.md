@@ -86,10 +86,15 @@ lib/
   auth-helpers.ts          requireAdmin / requireTeacher
   admin-password.ts        后台密码校验（常量时间比较）
   lesson-status.ts         课时状态机
+  rate-limit.ts            进程内限流
+  notify.ts                企业微信通知
   types.ts                 数据类型
 components/
   TeacherCard.tsx  BookingModal.tsx  FAQAccordion.tsx
+supabase/                  建表 SQL，手动去 Supabase SQL Editor 执行
 ```
+
+改动历史见 `LOG.md`。
 
 ## 6. 数据表
 
@@ -99,6 +104,7 @@ components/
 | `bookings` | 家长提交的需求，含 `phone` / `wechat` |
 | `matches` | 老师↔需求的匹配，`payment_confirmed` 表示信息费已到账 |
 | `lesson_orders` | 课时订单，走 4.3 的状态机 |
+| ~~`teacher_reviews`~~ | 评价表，**只有设计稿 `supabase/teacher_reviews.sql`，未执行未启用**，见第 8 节待办 2 |
 
 改表结构要去 Supabase 后台的 SQL Editor 手动执行 SQL，REST API 改不了。
 
@@ -135,17 +141,29 @@ components/
 
 ### 待办
 
-1. **企业微信 webhook 还没配**
-   代码已就绪，只差把群机器人地址填进 Vercel 环境变量 `WECOM_WEBHOOK_URL`。没配置时推送会静默跳过，不影响任何功能。
-   拿法：企业微信建群 → 群设置 → 群机器人 → 添加 → 复制 Webhook 地址。
+1. **🔴 招募页承诺和结算实现自相矛盾（最优先，需所有者决策）**
+   `app/laoshi/page.tsx` 三处写着「平台不从课时费里抽点」，但 `app/api/admin/lessons/[id]/route.ts` 结算实扣 8%（`platform_rate` 默认 0.08），**而且老师在教师端账单页看得见 `platform_fee`**。
+   现在没人计较只因为还没有真实老师。第一位老师上完课看到结算单就是信任崩塌点。
+   **要么改文案如实说明，要么改结算去掉 8%。这是定价决策，别自己改。**
 
-2. **限流是进程内的，不跨实例**
+2. **评价系统：设计好了但决定暂不上线**
+   完整建表 SQL 在 `supabase/teacher_reviews.sql`（**未执行、未启用**）。暂缓的三条理由见 `LOG.md` 2026-08-01。
+   **四个条件同时满足才做**：≥15 位真实第三方老师 / 每位老师 ≥5 条已完课订单 / 月订单稳定 20+ / 家长端凭证改成一订单一随机码（且随机码不能出现在任何老师端接口返回里）。
+   **上线前必须先做的前置改动**：`components/TeacherCard.tsx` 的档位标签现在是 ⭐基础档/⭐⭐进阶档/⭐⭐⭐精英档，评分星星一上就撞车，要先换成文字或色块。
+   替代方案（该做但还没做）：私密回访（家长确认完课后弹满意度，只进后台+推企微，不公开不算分）+ 老师卡片放客观计数（已完成 N 节课 / 服务 N 个家庭）。
+
+3. **企业微信 webhook**
+   ✅ 已配好（`WECOM_WEBHOOK_URL`），2026-07-30 走完整链路验证过。
+   注意：新版企业微信把「群机器人」叫「消息推送」，且机器人不作为群成员出现。
+   **消息内容里不要用 `*` 打码**，会被 Markdown 当加粗标记吃掉。
+
+4. **限流是进程内的，不跨实例**
    Vercel 多实例各算各的，所以实际配额是「配置值 × 实例数」。挡脚本够用，要精确得上 Redis（Upstash 之类）。
 
-3. **课时列表的分页没做筛选条件持久化**
+5. **课时列表的分页没做筛选条件持久化**
    切 tab 会回到第 1 页，这是有意为之；但如果以后加了搜索，要注意别把 page 带串了。
 
-4. 老师端「家长需求」列表也没分页，目前量小没做。
+6. 老师端「家长需求」列表也没分页，目前量小没做。
 
 ---
 
