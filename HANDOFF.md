@@ -109,7 +109,7 @@ supabase/                  建表 SQL，手动去 Supabase SQL Editor 执行
 | `bookings` | 家长提交的需求，含 `phone` / `wechat` |
 | `matches` | 老师↔需求的匹配，`payment_confirmed` 表示信息费已到账 |
 | `lesson_orders` | 课时订单，走 4.3 的状态机 |
-| ~~`teacher_reviews`~~ | 评价表，**只有设计稿 `supabase/teacher_reviews.sql`，未执行未启用**，见第 8 节待办 4 |
+| ~~`teacher_reviews`~~ | 评价表，**只有设计稿 `supabase/teacher_reviews.sql`，未执行未启用**，见第 8 节待办 6 |
 
 改表结构要去 Supabase 后台的 SQL Editor 手动执行 SQL，REST API 改不了。
 
@@ -158,27 +158,40 @@ supabase/                  建表 SQL，手动去 Supabase SQL Editor 执行
    代码侧已经把 placeholder 和提示改成资历式写法防新增，但**存量数据只能去后台或教师端手动改**。
    改写方向：把「送学生提升 20 分」换成「带过三届初三毕业班，擅长文言文和作文批改」这类讲资历和擅长领域的写法。
 
-3. **存量 3 位老师的 `phone` 是 null**
-   07-29 加了 phone 列并修好了注册丢手机号的 bug，但存量老师没回填，真要联系她们手上没号码。去后台补一下。
+3. **正式宣传前清空演示数据：跑 `scripts/reset-demo-data.mjs`**
+   ```bash
+   node scripts/reset-demo-data.mjs             # 演练，只看会删什么
+   node scripts/reset-demo-data.mjs --execute   # 真删（还要手输 yes）
+   ```
+   会清 5 张业务表 + `avatars` 头像 + Supabase Auth 教师账号，跑前自动全量备份到 `.backups/`（已 gitignore，里面有手机号邮箱，别提交）。表结构、RLS、`ADMIN_PASSWORD` 都不动。
 
-4. **评价系统：设计好了但决定暂不上线**
+4. **🟠 现存两个孤儿 Auth 账号（会让真老师注册卡死）**
+   `test_teacher_0509@example.com` 和 `13800005090@phone.jiashiyouyue.cn` 在 Auth 里存在，但 `teachers` 表没有对应行。谁拿 `13800005090` 来注册，会被告知「该手机号已注册」，登录后又查不到教师信息，卡在中间态——正是 `app/api/teacher/register/route.ts` 的回滚逻辑要防的情况，但这两个是修那段逻辑之前留下的。
+   清掉即可（`reset-demo-data.mjs` 会一并清，也可以单独去 Supabase → Authentication → Users 删）。
+
+5. **数据现状的两个坑（2026-08-07 查到）**
+   - **「培培老师」的 `email` 是 null**，而 `/api/auth/login` 按 email 查 `teachers`，null 永远匹配不上——**这条记录没人能登录进去管理**，只能从后台改。它却是 `is_visible=true` 在家长端展示。
+   - **3 位老师的 `phone` 全是 null**。07-29 加了 phone 列并修好了注册丢手机号的 bug，但存量老师没回填，真要联系她们手上没号码。
+   两条都会随正式宣传前的清空一起消失，在那之前知道就行。
+
+6. **评价系统：设计好了但决定暂不上线**
    完整建表 SQL 在 `supabase/teacher_reviews.sql`（**未执行、未启用**）。暂缓的三条理由见 `LOG.md` 2026-08-01。
    **四个条件同时满足才做**：≥15 位真实第三方老师 / 每位老师 ≥5 条已完课订单 / 月订单稳定 20+ / 家长端凭证改成一订单一随机码（且随机码不能出现在任何老师端接口返回里）。
    **上线前必须先做的前置改动**：`components/TeacherCard.tsx` 的档位标签现在是 ⭐基础档/⭐⭐进阶档/⭐⭐⭐精英档，评分星星一上就撞车，要先换成文字或色块。
    替代方案（该做但还没做）：私密回访（家长确认完课后弹满意度，只进后台+推企微，不公开不算分）+ 老师卡片放客观计数（已完成 N 节课 / 服务 N 个家庭）。
 
-5. **企业微信 webhook**
+7. **企业微信 webhook**
    ✅ 已配好（`WECOM_WEBHOOK_URL`），2026-07-30 走完整链路验证过。
    注意：新版企业微信把「群机器人」叫「消息推送」，且机器人不作为群成员出现。
    **消息内容里不要用 `*` 打码**，会被 Markdown 当加粗标记吃掉。
 
-6. **限流是进程内的，不跨实例**
+8. **限流是进程内的，不跨实例**
    Vercel 多实例各算各的，所以实际配额是「配置值 × 实例数」。挡脚本够用，要精确得上 Redis（Upstash 之类）。
 
-7. **课时列表的分页没做筛选条件持久化**
+9. **课时列表的分页没做筛选条件持久化**
    切 tab 会回到第 1 页，这是有意为之；但如果以后加了搜索，要注意别把 page 带串了。
 
-8. 老师端「家长需求」列表也没分页，目前量小没做。
+10. 老师端「家长需求」列表也没分页，目前量小没做。
 
 ---
 
