@@ -9,6 +9,11 @@
  *   node scripts/reset-demo-data.mjs             # 演练，只看会删什么，不动数据
  *   node scripts/reset-demo-data.mjs --execute   # 真删（还会再问一次，要手输 yes）
  *
+ *   --env-file <路径>   连别的项目而不是 .env.local 里的正式库。
+ *                      这个参数存在的唯一理由是"能在一次性的临时项目上真跑一遍 --execute"——
+ *                      拿正式库测试是不可能的，一跑数据就没了。
+ *                      平时清正式库不要带这个参数。
+ *
  * 会删：
  *   lesson_orders / matches / password_reset_requests / bookings / teachers 全表
  *   avatars bucket 里的头像文件
@@ -30,13 +35,23 @@ import { stdin, stdout } from 'node:process'
 
 const EXECUTE = process.argv.includes('--execute')
 
-// ---------- 读 .env.local ----------
+const envFlagIdx = process.argv.indexOf('--env-file')
+const ENV_FILE = envFlagIdx >= 0 ? process.argv[envFlagIdx + 1] : null
+if (envFlagIdx >= 0 && !ENV_FILE) {
+  console.error('✗ --env-file 后面要跟文件路径')
+  process.exit(1)
+}
+
+// ---------- 读环境变量 ----------
 function loadEnv() {
+  const target = ENV_FILE ? new URL(ENV_FILE, `file://${process.cwd()}/`) : new URL('../.env.local', import.meta.url)
   let raw
   try {
-    raw = readFileSync(new URL('../.env.local', import.meta.url), 'utf8')
+    raw = readFileSync(target, 'utf8')
   } catch {
-    console.error('✗ 读不到 .env.local。这个脚本要在项目根目录下跑，且 .env.local 得在。')
+    console.error(ENV_FILE
+      ? `✗ 读不到 ${ENV_FILE}`
+      : '✗ 读不到 .env.local。这个脚本要在项目根目录下跑，且 .env.local 得在。')
     process.exit(1)
   }
   const env = {}
@@ -76,7 +91,8 @@ async function countAll() {
 
 async function main() {
   console.log(`\n模式：${EXECUTE ? '⚠️  真删（--execute）' : '演练（不会动任何数据）'}`)
-  console.log(`项目：${url}\n`)
+  console.log(`项目：${url}`)
+  console.log(`配置来源：${ENV_FILE || '.env.local（正式库）'}\n`)
 
   // ---------- 1. 全量备份 ----------
   const stamp = new Date().toISOString().replace(/[:.]/g, '-')

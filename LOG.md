@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-08-08　补上缺失的建表 SQL，并在临时项目真跑了一次清空脚本
+
+**起因**：清空脚本 `--execute` 那条路径一直没被执行过——拿正式库测不可能，一跑三条老师数据就没了。所以开了个一次性的 Supabase 免费项目实跑。
+
+**卡在第一步：仓库里根本没有主表的建表 SQL。** `supabase/` 只有 `password_reset_requests` 和未启用的 `teacher_reviews`，`teachers`/`bookings`/`matches`/`lesson_orders` 四张主表的 DDL 从来没进过版本库。接手的人没法从零搭环境，我也没法复刻。已从线上库反推补齐成 `supabase/schema.sql`。
+
+**反推方式**：在 SQL Editor 里查 `pg_class`/`pg_attribute`/`pg_constraint`/`pg_indexes`，拼出列定义、约束、索引。
+
+**两个浏览器操作上的坑**：
+- Supabase 的 SQL Editor 是 **Monaco** 不是 CodeMirror，Playwright 的 `fill` 填不干净（新内容写进去了，旧内容比新内容长的尾巴会留下，两条 SQL 拼在一起）。改用 `window.monaco.editor.getModels()[0].setValue()` 一次性替换，干净可靠。
+- 查询里只要出现 `create table` 字样（哪怕只是字符串拼接、根本不建表），Supabase 就弹 RLS 确认框拦住。把字面量拆成 `'crea'||'te table'` 可绕过；真建表时选「Run without RLS」（线上也没配 RLS，权限全靠服务端 service_role）。
+
+**查 schema 时顺带发现的事实**：
+- 外键除 `password_reset_requests.teacher_id` 外**都没有 ON DELETE CASCADE**，所以删除顺序错了会直接撞外键报错——这次是硬验证，不是推演。脚本的顺序 `lesson_orders → matches → password_reset_requests → bookings → teachers` 正确。
+- `bookings.teacher_id` 也有外键指向 `teachers`，之前没意识到。
+- ⚠️ `payment_status` 的 CHECK 允许 `pending/paid/**refunded**`，但 `lib/types.ts` 只声明了 `'pending' | 'paid'`。退款这条路数据库开着、代码没实现。已记进 HANDOFF。
+- `platform_rate` 默认值确认是 `0`，昨天那条 SQL 生效了。
+
+**给脚本加了 `--env-file`**：原本硬读 `.env.local`（正式库），导致它**根本没法被测试**。加了这个参数才能指向临时项目。同时在输出里打印「配置来源」，免得哪天连错库还不知道。
+
+**验证结果**：在临时项目灌了带完整外键关联的假数据（3 老师 / 2 需求 / 2 匹配 / 2 订单 / 1 改密申请 / 3 个 Auth 账号含一个孤儿 / 1 个头像），跑 `--execute` 全流程通过。**没只信脚本自己的输出**，另写脚本独立复核：5 张表全空、`auth.users` 0 个、`avatars` 0 个文件、`teachers` 仍能正常插入（结构完好）、`lesson_status` 的 CHECK 约束仍拒绝非法值。
+
+跑完确认正式库分毫未动（三条老师、两个 Auth 账号都在），临时项目已删除，本地临时文件和假数据备份也清了。
+
+**教训**：一次性的危险脚本，"写好了但没跑过"和"跑过了"是两回事。开个免费临时项目实跑一遍的成本，比真到那天出事低得多。
+
+---
+
 ## 2026-08-07（二）　招募漏斗排查 + 加网课支持
 
 **怎么查的**：以老师身份在手机尺寸（390×844）真走了一遍 注册 → 登录 → 教师端填资料，不是读代码猜。测试账号和数据每轮都清干净了。

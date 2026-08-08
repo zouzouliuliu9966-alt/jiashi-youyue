@@ -96,7 +96,12 @@ lib/
   types.ts                 数据类型
 components/
   TeacherCard.tsx  BookingModal.tsx  FAQAccordion.tsx
-supabase/                  建表 SQL，手动去 Supabase SQL Editor 执行
+supabase/
+  schema.sql               完整表结构（新建项目时整份执行一次就能复刻线上）
+  platform_rate_default_0.sql  已执行，把课时费抽成默认值改成 0
+  teacher_reviews.sql      评价系统设计稿，未执行未启用
+scripts/
+  reset-demo-data.mjs      正式宣传前清空演示数据（默认演练，--execute 才真删）
 ```
 
 改动历史见 `LOG.md`。
@@ -112,6 +117,12 @@ supabase/                  建表 SQL，手动去 Supabase SQL Editor 执行
 | ~~`teacher_reviews`~~ | 评价表，**只有设计稿 `supabase/teacher_reviews.sql`，未执行未启用**，见第 8 节待办 6 |
 
 改表结构要去 Supabase 后台的 SQL Editor 手动执行 SQL，REST API 改不了。
+完整表结构在 `supabase/schema.sql`（2026-08-08 从线上反推补齐，此前主表 DDL 一直不在版本库里）。
+
+**外键依赖顺序**（删数据时按这个走，反着来会撞外键；除 `password_reset_requests` 外都没有 CASCADE）：
+`lesson_orders` → `matches` → `password_reset_requests` → `bookings` → `teachers`
+
+⚠️ `payment_status` 的数据库 CHECK 允许 `pending/paid/refunded`，但 `lib/types.ts` 只声明了 `'pending' | 'paid'`——退款这条路代码侧没实现，加退款功能前先对齐类型。
 
 ## 7. 鉴权方式
 
@@ -164,6 +175,8 @@ supabase/                  建表 SQL，手动去 Supabase SQL Editor 执行
    node scripts/reset-demo-data.mjs --execute   # 真删（还要手输 yes）
    ```
    会清 5 张业务表 + `avatars` 头像 + Supabase Auth 教师账号，跑前自动全量备份到 `.backups/`（已 gitignore，里面有手机号邮箱，别提交）。表结构、RLS、`ADMIN_PASSWORD` 都不动。
+
+   **2026-08-08 已在一次性临时 Supabase 项目上真跑过 `--execute` 全流程**（灌了带完整外键关联的假数据，含孤儿 Auth 账号和头像文件），跑完独立复核：5 张表全空、Auth 0 个、头像 0 个、表结构和 CHECK 约束完好。验完临时项目已删除。所以这个脚本不是"写好没验过"的状态。
 
 4. **🟠 现存两个孤儿 Auth 账号（会让真老师注册卡死）**
    `test_teacher_0509@example.com` 和 `13800005090@phone.jiashiyouyue.cn` 在 Auth 里存在，但 `teachers` 表没有对应行。谁拿 `13800005090` 来注册，会被告知「该手机号已注册」，登录后又查不到教师信息，卡在中间态——正是 `app/api/teacher/register/route.ts` 的回滚逻辑要防的情况，但这两个是修那段逻辑之前留下的。
