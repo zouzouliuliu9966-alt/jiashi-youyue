@@ -102,6 +102,7 @@ supabase/
   teacher_reviews.sql      评价系统设计稿，未执行未启用
 scripts/
   reset-demo-data.mjs      正式宣传前清空演示数据（默认演练，--execute 才真删）
+  e2e-live-check.mjs       全链路端到端自检（会真发企微通知，跑完自动清数据）
 ```
 
 改动历史见 `LOG.md`。
@@ -216,5 +217,14 @@ git push origin main   # Vercel 自动部署，约 30 秒
 ```
 
 **上线后一定要真机验证**，不要只看 build 成功。这个项目的用户 100% 在手机上，用手机尺寸（390×844）看效果。
+
+改动涉及后端逻辑时，跑一遍全链路自检：
+
+```bash
+E2E_BASE=http://localhost:3000 node scripts/e2e-live-check.mjs   # 先本地排 bug，不发企微
+node scripts/e2e-live-check.mjs                                  # 再打线上，会真发 3 条企微
+```
+
+覆盖 14 步 39 项：注册 → 填资料（含 mass assignment 防护）→ 教务审核上架 → 家长预约 → 推送 → **付费前后家长联系方式的可见性**（平台收费点）→ 接单 → 确认收款 → 建单 → 老师标完课 → 家长确认 → 结算（验抽成为 0）→ 公开接口字段白名单。跑完自动清数据，且删 `teachers` 前会二次校验记录名含本次 RUN_ID，防误删真实老师。
 
 涉及课时状态的改动，要把完整链路跑一遍：后台建单 → 确认收款 → 老师标完课 → 家长确认 → 结算，并检查结算金额（**平台不抽课时费，`settle_amount` 应等于单价，`platform_fee` 应为 0**）。
