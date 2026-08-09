@@ -187,7 +187,7 @@ export default function JoinPage() {
             <div className="text-xs text-gray-600 space-y-1 leading-relaxed">
               <p className="font-medium text-gray-800">扫码加教务企业微信</p>
               <p>或搜索微信号</p>
-              <p className="font-medium text-orange-600">c_zzZlzy</p>
+              <p className="font-medium text-orange-600">Jsyy8805</p>
               <p className="text-gray-400 pt-1">工作时段 10:00–18:00</p>
             </div>
           </div>

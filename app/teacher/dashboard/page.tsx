@@ -576,7 +576,7 @@ export default function TeacherDashboard() {
                     <div className="flex-1 text-xs text-orange-700 space-y-0.5">
                       <p className="font-medium">扫码加教务企业微信（推荐）</p>
                       <p>或搜索教务微信</p>
-                      <p className="font-medium text-orange-800">c_zzZlzy</p>
+                      <p className="font-medium text-orange-800">Jsyy8805</p>
                     </div>
                   </div>
                 </div>
@@ -757,7 +757,7 @@ export default function TeacherDashboard() {
                 <div className="flex-1 text-blue-700 space-y-0.5">
                   <p className="font-medium">扫码加教务企业微信（推荐）</p>
                   <p>或搜索教务微信</p>
-                  <p className="font-medium text-blue-900">c_zzZlzy</p>
+                  <p className="font-medium text-blue-900">Jsyy8805</p>
                 </div>
               </div>
             </div>
