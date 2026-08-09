@@ -34,8 +34,25 @@ app/teacher/        教师端：登录/注册/资料/课时/须知
 app/admin/          后台：看板/预约/老师/课时/密码重置
 app/api/            所有 Supabase 调用（前端绝不能直连 Supabase）
 lib/                状态机、鉴权、限流、通知等公共逻辑
-supabase/           建表 SQL（手动去 Supabase SQL Editor 执行）
+supabase/           SQL（手动去 Supabase SQL Editor 执行）
+  schema.sql        完整表结构，新建项目整份跑一次即可复刻线上
+scripts/            运维脚本
+  e2e-live-check.mjs    全链路端到端自检
+  reset-demo-data.mjs   正式宣传前清空演示数据
 ```
+
+## 自检
+
+改了后端逻辑，跑一遍全链路自检再上线：
+
+```bash
+E2E_BASE=http://localhost:3000 node scripts/e2e-live-check.mjs   # 先本地，不发企微
+node scripts/e2e-live-check.mjs                                  # 再打线上，会真发 3 条企微
+```
+
+覆盖 14 步 39 项：注册 → 填资料 → 审核上架 → 家长预约 → 推送 → 付费前后联系方式可见性
+→ 接单 → 确认收款 → 建单 → 标完课 → 家长确认 → 结算 → 公开接口字段白名单。
+跑完自动清数据。
 
 ## 上线
 
