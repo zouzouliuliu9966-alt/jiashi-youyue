@@ -39,14 +39,14 @@ export async function PATCH(
 
   if (action === 'confirm_payment') {
     if (current.payment_status === 'paid') {
-      return NextResponse.json({ error: '已确认收款，无需重复操作' }, { status: 400 })
+      return NextResponse.json({ error: '已确认家长付款，无需重复操作' }, { status: 400 })
     }
     update.payment_status = 'paid'
     update.payment_confirmed_at = now
     guard.payment_status = 'pending'
   } else if (action === 'mark_completed') {
     if (current.payment_status !== 'paid') {
-      return NextResponse.json({ error: '未付款的订单不能标记完课' }, { status: 400 })
+      return NextResponse.json({ error: '家长尚未付款的课时记录不能标记完课' }, { status: 400 })
     }
     if (isDone(current.lesson_status)) {
       return NextResponse.json({ error: '已完课，无需重复标记' }, { status: 400 })
@@ -72,7 +72,7 @@ export async function PATCH(
     guard.lesson_status = 'teacher_done'
   } else if (action === 'settle') {
     if (!isDone(current.lesson_status)) {
-      return NextResponse.json({ error: '未完课的订单不能结算' }, { status: 400 })
+      return NextResponse.json({ error: '未完课的订单不能对账' }, { status: 400 })
     }
     if (current.settled) {
       return NextResponse.json({ error: '已结算，不能重复结算' }, { status: 400 })

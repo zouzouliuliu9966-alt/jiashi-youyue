@@ -40,8 +40,8 @@ const PAGE_SIZE = 20
 const tabLabels: Record<Tab, string> = {
   all: '全部',
   pending: '待付款',
-  paid: '已付款待上课',
-  completed: '已完成待结算',
+  paid: '家长已付待上课',
+  completed: '已完成待对账',
   settled: '已结算',
 }
 
@@ -306,7 +306,7 @@ export default function AdminLessons() {
                 {/* 时间线 */}
                 <div className="text-xs text-gray-500 space-y-0.5 mb-3 bg-gray-50 rounded-lg px-3 py-2">
                   {l.payment_confirmed_at && (
-                    <p>确认收款：{new Date(l.payment_confirmed_at).toLocaleString('zh-CN')}</p>
+                    <p>确认家长已付：{new Date(l.payment_confirmed_at).toLocaleString('zh-CN')}</p>
                   )}
                   {l.teacher_marked_at && (
                     <p>老师标记完课：{new Date(l.teacher_marked_at).toLocaleString('zh-CN')}</p>
@@ -316,8 +316,8 @@ export default function AdminLessons() {
                   )}
                   {l.settled_at && (
                     <p>
-                      结算：{new Date(l.settled_at).toLocaleString('zh-CN')} ·
-                      应付老师 ¥{l.settle_amount}
+                      对账完成：{new Date(l.settled_at).toLocaleString('zh-CN')} ·
+                      课时费 ¥{l.settle_amount}
                       {Number(l.platform_fee) > 0 && ` · 平台 ¥${l.platform_fee}`}
                     </p>
                   )}
@@ -326,7 +326,7 @@ export default function AdminLessons() {
                 {/* 结算预览（未结算时显示） */}
                 {!l.settled && (
                   <div className="text-xs text-gray-500 mb-3">
-                    预计：应付老师 <span className="text-green-600 font-medium">¥{toTeacher}</span>
+                    课时费 <span className="text-green-600 font-medium">¥{toTeacher}</span>
                     {rate > 0 && (
                       <>
                         {' · '}
@@ -345,7 +345,7 @@ export default function AdminLessons() {
                       onClick={() => act(l.id, 'confirm_payment')}
                       className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-medium disabled:opacity-50"
                     >
-                      确认收款
+                      确认家长已付
                     </button>
                   )}
                   {l.payment_status === 'paid' && l.lesson_status === 'pending' && (

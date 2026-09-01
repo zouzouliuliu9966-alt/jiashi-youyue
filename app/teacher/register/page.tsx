@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { LEGAL } from '@/lib/legal'
 
 export default function TeacherRegister() {
   const router = useRouter()
@@ -11,8 +12,15 @@ export default function TeacherRegister() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  // 2026-09 简化：原来协议与信息出境是两个独立勾选，现合并为一个，
+  // 出境告知挪进《隐私政策》正文
+  const [agreeTerms, setAgreeTerms] = useState(false)
 
   const register = async () => {
+    // 按钮 disabled 挡不住密码框的回车，没这道闸能并发发起重复注册
+    if (loading) return
+    // 理由同 BookingModal：按钮灰是因为没勾选，就该先提示勾选
+    if (!agreeTerms) { setError('请先阅读并勾选下方的协议同意'); return }
     if (!name.trim()) { setError('请填写称呼'); return }
     if (!/^\d{11}$/.test(phone)) { setError('请填写11位手机号'); return }
     if (password.length < 6) { setError('密码至少6位'); return }
@@ -27,16 +35,23 @@ export default function TeacherRegister() {
       const res = await fetch('/api/teacher/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), email: loginEmail, phone, password })
+        body: JSON.stringify({ name: name.trim(), email: loginEmail, phone, password, agreed: agreeTerms })
       })
-      const json = await res.json()
+      const json = await res.json().catch(() => ({}))
 
-      if (json.error) {
+      if (!res.ok || json.error) {
         setLoading(false)
-        if (json.error.includes('already')) {
+        const raw = String(json.error || '')
+        if (raw.includes('already')) {
           setError('该手机号已注册，请直接登录')
+        } else if (res.status >= 500 || !raw) {
+          // 5xx 是服务端/数据库原文（英文、可能含表名），不能甩给老师
+          setError(`注册失败，请稍后重试，或加教务企业微信 ${LEGAL.contactWecom}`)
+        } else if (/[\u4e00-\u9fa5]/.test(raw)) {
+          // 只透传我们自己写的中文提示；上游英文一律换掉
+          setError(raw)
         } else {
-          setError('注册失败：' + json.error)
+          setError(`注册失败，请检查填写内容，或加教务企业微信 ${LEGAL.contactWecom}`)
         }
         return
       }
@@ -113,10 +128,24 @@ export default function TeacherRegister() {
               onKeyDown={e => e.key === 'Enter' && register()} />
           </div>
 
+          <label className="flex items-start gap-2 text-xs text-gray-600 leading-relaxed pt-1">
+            <input type="checkbox" checked={agreeTerms}
+              onChange={e => setAgreeTerms(e.target.checked)} className="mt-0.5 shrink-0 w-4 h-4" />
+            <span>
+              我已阅读并同意
+              <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-orange-600 font-medium">《用户协议》</a>
+              和
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-orange-600 font-medium">《隐私政策》</a>
+            </span>
+          </label>
+
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
+          {/* 别 disabled：禁用按钮不触发 onClick，点了零反馈，用户以为卡住了 */}
           <button onClick={register} disabled={loading}
-            className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white rounded-xl py-3 font-medium text-sm transition-colors">
+            className={`w-full text-white rounded-xl py-3 font-medium text-sm transition-colors ${
+              agreeTerms ? 'bg-orange-500 hover:bg-orange-600' : 'bg-gray-300 hover:bg-gray-400'
+            } disabled:bg-orange-300`}>
             {loading ? '注册中...' : '注册'}
           </button>
 

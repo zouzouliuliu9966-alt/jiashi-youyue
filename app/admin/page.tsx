@@ -100,7 +100,7 @@ export default function AdminHome() {
               </p>
               <div className="grid grid-cols-3 gap-3">
                 <Link href="/admin/bookings" className="bg-white rounded-xl p-3 hover:shadow-sm transition-shadow">
-                  <p className="text-xs text-gray-400 mb-1">待确认收款</p>
+                  <p className="text-xs text-gray-400 mb-1">待确认老师已付信息费</p>
                   <p className={`text-xl font-bold ${stats.todo.matchesAwaitingPayment > 0 ? 'text-orange-600' : 'text-gray-300'}`}>
                     {stats.todo.matchesAwaitingPayment}
                   </p>
@@ -113,7 +113,7 @@ export default function AdminHome() {
                   </p>
                 </Link>
                 <Link href="/admin/lessons" className="bg-white rounded-xl p-3 hover:shadow-sm transition-shadow">
-                  <p className="text-xs text-gray-400 mb-1">待结算</p>
+                  <p className="text-xs text-gray-400 mb-1">待对账</p>
                   <p className={`text-xl font-bold ${stats.todo.lessonsAwaitingSettle > 0 ? 'text-orange-600' : 'text-gray-300'}`}>
                     {stats.todo.lessonsAwaitingSettle}
                   </p>
@@ -124,13 +124,13 @@ export default function AdminHome() {
             <h2 className="font-medium text-gray-900 pt-2">{stats.month}</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <Stat label="本月新增预约" value={stats.bookingsThisMonth} unit="条" hint={`累计 ${stats.bookingsTotal} 条`} />
-              <Stat label="本月课时流水" value={stats.revenueThisMonth} unit="元" />
-              <Stat label="本月课时费抽成" value={stats.platformFeeThisMonth} unit="元" hint={`累计 ${stats.platformFeeTotal} 元`} />
+              <Stat label="本月课时费（老师直收）" value={stats.revenueThisMonth} unit="元" />
+              <Stat label="本月平台抽成（应为 0）" value={stats.platformFeeThisMonth} unit="元" hint={`累计 ${stats.platformFeeTotal} 元`} />
               <Stat label="展示中老师" value={stats.teachersVisible} unit="位" hint={`另有 ${stats.teachersPending} 位未展示`} />
             </div>
 
             <p className="text-xs text-gray-400 pt-2">
-              流水和抽成按「已结算」的课时订单统计。平台已承诺不从课时费抽点，所以抽成正常应为 0；
+              金额按「已对账」的课时记录统计；课时费不经过平台，这里只是台账。平台已承诺不从课时费抽点，所以抽成正常应为 0；
               真正的收入是接单信息费，目前系统没记录金额，不在这里统计。
             </p>
           </>

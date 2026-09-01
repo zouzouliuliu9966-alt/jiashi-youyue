@@ -26,6 +26,10 @@ export default function Home() {
   const [mode, setMode] = useState('全部')
   const [selected, setSelected] = useState<Teacher | null>(null)
   const [loading, setLoading] = useState(true)
+  // 微信里点《用户协议》是整页硬导航，回来弹窗已经销毁了，用户只看到首页。
+  // BookingModal 把草稿连同 teacher_id 一起暂存，这里给一个回到那份草稿的入口，
+  // 否则「返回后可从首页继续」就又是一句做不到的承诺。
+  const [draft, setDraft] = useState<{ key: string; teacher_id: string; teacher_name: string } | null>(null)
 
   useEffect(() => {
     fetch('/api/teachers')
@@ -37,6 +41,33 @@ export default function Home() {
         }
       })
       .finally(() => setLoading(false))
+
+    // 扫一遍有没有未填完的预约草稿。
+    // 逐份 try/catch：一份坏掉的草稿不能让整轮扫描停下，后面有效的就看不到了。
+    // 取 saved_at 最新的一份 —— sessionStorage 的枚举顺序不代表最近填的。
+    try {
+      let best: { key: string; teacher_id: string; teacher_name: string; saved_at: number } | null = null
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const k = sessionStorage.key(i)
+        if (!k?.startsWith('booking_draft:')) continue
+        try {
+          const d = JSON.parse(sessionStorage.getItem(k) || '{}')
+          // 只认真填过东西的草稿，空表单不打扰用户
+          const filled = d.form && Object.entries(d.form)
+            .some(([key, v]) => key !== 'course_type' && typeof v === 'string' && v.trim())
+          if (!filled || !d.teacher_id) continue
+          const saved = typeof d.saved_at === 'number' ? d.saved_at : 0
+          if (!best || saved > best.saved_at) {
+            best = { key: k, teacher_id: d.teacher_id, teacher_name: d.teacher_name || '这位老师', saved_at: saved }
+          }
+        } catch { /* 这一份坏了，跳过继续看下一份 */ }
+      }
+      // sessionStorage 只在浏览器有，不能放进 useState 惰性初始化
+      // （首页参与 SSR，会崩；改成 typeof window 判断又会 hydration 不一致），
+      // 挂载后读再 setState 是这个场景的正解
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (best) setDraft(best)
+    } catch { /* 存储被禁用就没有草稿，正常走 */ }
   }, [])
 
   useEffect(() => {
@@ -54,13 +85,18 @@ export default function Home() {
     setFiltered(list)
   }, [subject, grade, tier, mode, teachers])
 
+  const discardDraft = () => {
+    if (draft) { try { sessionStorage.removeItem(draft.key) } catch { /* 忽略 */ } }
+    setDraft(null)
+  }
+
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-gray-900">家师有约</h1>
-            <p className="text-sm text-gray-500">严选师资 · 专业匹配 · 放心托付</p>
+            <p className="text-sm text-gray-500">教务面试筛选 · 一对一匹配</p>
           </div>
           <Link href="/my-lessons" className="text-sm text-orange-500 hover:text-orange-600">我的课时</Link>
         </div>
@@ -69,7 +105,7 @@ export default function Home() {
       <div className="bg-gradient-to-b from-orange-500 to-orange-400 text-white">
         <div className="max-w-2xl mx-auto px-4 py-10 text-center">
           <h2 className="text-2xl font-bold mb-2">严选南京家教 · 教务一对一匹配</h2>
-          <p className="text-orange-100 mb-6">持证教师 · 免费匹配 · 不满意可换老师</p>
+          <p className="text-orange-100 mb-6">教务面试筛选 · 免费匹配 · 不满意可换老师</p>
           <button
             onClick={() => document.getElementById('teacher-list')?.scrollIntoView({ behavior: 'smooth' })}
             className="bg-white text-orange-500 font-bold px-8 py-3 rounded-full shadow-lg hover:shadow-xl transition-all text-lg"
@@ -78,6 +114,33 @@ export default function Home() {
           </button>
         </div>
       </div>
+
+      {draft && (
+        <div className="max-w-2xl mx-auto px-4 pt-3">
+          <div className="bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 flex items-center gap-3">
+            <p className="text-sm text-orange-800 flex-1">
+              您有一份填了一半的预约（{draft.teacher_name}）
+            </p>
+            <button
+              onClick={() => {
+                const t = teachers.find(x => x.id === draft.teacher_id)
+                if (t) { setSelected(t); return }
+                // 列表还没加载完就点，teachers 是空的，这时不能判成"已下架"
+                if (loading) { alert('老师列表还在加载，请稍等一下再点'); return }
+                alert('这位老师已经下架了，这份草稿用不上了')
+                discardDraft()
+              }}
+              className="shrink-0 text-sm font-medium text-orange-600 hover:text-orange-700"
+            >
+              继续填写 →
+            </button>
+            {/* 丢弃必须真删存储：草稿里有手机号、学生情况和上课地址，
+                只清 React 状态的话刷新又回来了，用户没有任何办法把它删掉 */}
+            <button onClick={discardDraft} aria-label="丢弃这份草稿"
+              className="shrink-0 text-orange-300 hover:text-orange-500 text-lg leading-none">×</button>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white border-b">
         <div className="max-w-2xl mx-auto px-4 py-3 space-y-2">
@@ -143,7 +206,7 @@ export default function Home() {
                 </svg>
               </div>
               <p className="font-medium text-sm text-gray-800 mb-1">严选师资</p>
-              <p className="text-xs text-gray-500">持证教师 · 教务面试 · 教学经验过关</p>
+              <p className="text-xs text-gray-500">教务逐位面试 · 教学经历核对过</p>
             </div>
             <div>
               <div className="w-12 h-12 mx-auto mb-2 bg-orange-100 rounded-full flex items-center justify-center">
@@ -175,9 +238,24 @@ export default function Home() {
             我是老师，我要入驻 →
           </Link>
         </div>
+
+        {/* 法律入口。有页面没入口等于没有，别删 */}
+        <div className="mt-4 flex justify-center gap-4 text-xs text-gray-400">
+          <Link href="/terms" className="hover:text-gray-600">用户协议</Link>
+          <Link href="/privacy" className="hover:text-gray-600">隐私政策</Link>
+          <Link href="/report" className="hover:text-gray-600">投诉举报</Link>
+        </div>
       </div>
 
-      {selected && <BookingModal teacher={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <BookingModal
+          key={selected.id}
+          teacher={selected}
+          onClose={() => setSelected(null)}
+          // 提交成功后横幅必须撤掉，否则它还挂着、点开是一份空表单
+          onSubmitted={() => setDraft(d => (d?.teacher_id === selected.id ? null : d))}
+        />
+      )}
     </main>
   )
 }

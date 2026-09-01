@@ -90,7 +90,8 @@ try {
   // ─────────────────────────────── 1. 老师注册（企微通知 ①）
   head('老师注册  → 应触发企微通知「新老师注册」')
   const reg = await call('/api/teacher/register', {
-    body: { name: `${TAG}老师`, email: TEACHER_EMAIL, phone: TEACHER_PHONE, password: TEACHER_PW },
+    // agreed 是服务端必填：表单上那个「我已阅读并同意」勾选，接口会校验
+    body: { name: `${TAG}老师`, email: TEACHER_EMAIL, phone: TEACHER_PHONE, password: TEACHER_PW, agreed: true },
   })
   must(reg.status === 200 && reg.json?.success, `注册成功（HTTP ${reg.status}）`)
   owned.authUserId = reg.json.userId || null
@@ -150,6 +151,7 @@ try {
       phone: PARENT_PHONE, wechat: PARENT_WECHAT,
       student_intro: `${TAG} 自动化验证产生的测试预约，请忽略`,
       available_time: '周末上午', address: '南京市玄武区（测试）',
+      agreed: true,   // 同上，接口会校验勾选
     },
   })
   if (bk.status === 429) { bad('撞到限流（5次/小时），换个时间再跑'); throw new Error('限流') }

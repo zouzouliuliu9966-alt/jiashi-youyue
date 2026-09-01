@@ -3,80 +3,6 @@
 import Link from 'next/link'
 import FAQAccordion, { FAQItem } from '@/components/FAQAccordion'
 
-function PriceTable() {
-  return (
-    <div className="space-y-4">
-      <div>
-        <h4 className="text-sm font-semibold text-gray-700 mb-2">一对一辅导</h4>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="bg-orange-50 text-orange-700">
-                <th className="text-left py-2 px-3 rounded-tl-lg">年级</th>
-                <th className="text-right py-2 px-3 rounded-tr-lg">价格 (2h)</th>
-              </tr>
-            </thead>
-            <tbody className="text-gray-700">
-              <tr className="border-b border-gray-100">
-                <td className="py-2 px-3">小学</td>
-                <td className="text-right py-2 px-3">300 - 500 元</td>
-              </tr>
-              <tr className="border-b border-gray-100">
-                <td className="py-2 px-3">初中</td>
-                <td className="text-right py-2 px-3">400 - 600 元</td>
-              </tr>
-              <tr className="border-b border-gray-100">
-                <td className="py-2 px-3">中考冲刺</td>
-                <td className="text-right py-2 px-3">500 - 600 元</td>
-              </tr>
-              <tr className="border-b border-gray-100">
-                <td className="py-2 px-3">高一高二</td>
-                <td className="text-right py-2 px-3">600 - 800 元</td>
-              </tr>
-              <tr>
-                <td className="py-2 px-3">高三</td>
-                <td className="text-right py-2 px-3">700 - 1000 元</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div>
-        <h4 className="text-sm font-semibold text-gray-700 mb-2">小组课 (2-8人)</h4>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="bg-orange-50 text-orange-700">
-                <th className="text-left py-2 px-3 rounded-tl-lg">年级</th>
-                <th className="text-right py-2 px-3 rounded-tr-lg">价格 (2h/人)</th>
-              </tr>
-            </thead>
-            <tbody className="text-gray-700">
-              <tr className="border-b border-gray-100">
-                <td className="py-2 px-3">小学</td>
-                <td className="text-right py-2 px-3">180 - 220 元</td>
-              </tr>
-              <tr className="border-b border-gray-100">
-                <td className="py-2 px-3">初中</td>
-                <td className="text-right py-2 px-3">240 - 350 元</td>
-              </tr>
-              <tr>
-                <td className="py-2 px-3">高中</td>
-                <td className="text-right py-2 px-3">300 - 600 元</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <p className="text-xs text-gray-400">
-        注：具体价格根据老师资质、科目、距离等因素浮动，以实际沟通为准。
-      </p>
-    </div>
-  )
-}
-
 const parentFAQs: FAQItem[] = [
   {
     q: '老师怎么收费？',
@@ -84,15 +10,21 @@ const parentFAQs: FAQItem[] = [
   },
   {
     q: '课时费怎么付？',
-    a: '支持两种方式，由您选择：① 直接转账给老师（微信/支付宝/现金）；② 付到平台账户，由平台代为转给老师。具体方式可在教务匹配后与教务沟通确认。',
+    // 原来这里写的是「也可以付到平台账户由平台代转」。已取消 ——
+    // 课时费一旦过平台账户，平台就持有了预付款，老师中途中断时性质完全不同。
+    // 用户协议第二条同步写了「平台不代收、不代管、不代付」，两处口径必须一致。
+    a: '直接付给老师本人（微信、支付宝或现金均可），平台不代收、不代管课时费，也不接受任何形式的充值。具体节奏由您和老师商定，建议按课时或按小周期结算，不要一次性预付太多。',
   },
   {
     q: '不满意怎么办？',
-    a: '对老师教学不满意，可联系教务，我们会免费协调更换其他老师（同一家庭最多 2 次）。已上课程的课时费按实际正常结算，不予退还。',
+    a: '对老师教学不满意，可联系教务，我们会免费协调更换其他老师（同一家庭最多 2 次）。已经上过的课，课时费照常付给原来那位老师，不退。',
   },
   {
-    q: '课时费参考标准是多少？',
-    a: <PriceTable />,
+    // 原来这里挂的是一张按小学/初中/中考冲刺列价的价目表。撤掉了 ——
+    // 平台自己按学段列学科辅导报价，等于主动把业务性质写清楚，没必要。
+    // 价格本来就由老师自己定，老师卡片上也有，放这儿是重复信息。
+    q: '课时费怎么算？',
+    a: '课时费由每位老师自行定价，在老师卡片上直接可以看到。平台不代收、不抽成，费用由您和老师直接结算。拿不准可以问教务，教务会按您的需求推荐合适价位的老师。',
   },
   {
     q: '怎么预约老师？',
@@ -100,7 +32,7 @@ const parentFAQs: FAQItem[] = [
   },
   {
     q: '平台有什么保障？',
-    a: '所有老师均经过平台审核，教务全程跟进，课后定期回访。如对老师不满意，教务会协调更换老师，确保为您找到合适的师资。',
+    a: '每位老师教务都当面或视频沟通过，了解其教学经历后才上架，教务全程跟进，课后定期回访。如对老师不满意，教务会协调更换老师，确保为您找到合适的师资。',
   },
 ]
 
@@ -136,6 +68,12 @@ export default function RulesPage() {
         >
           返回首页
         </Link>
+        {/* 家长常常是从群里直接点进这一页的，没有法律入口就是死角 */}
+        <div className="mt-4 flex justify-center gap-4 text-xs text-gray-400">
+          <Link href="/terms" className="hover:text-gray-600">用户协议</Link>
+          <Link href="/privacy" className="hover:text-gray-600">隐私政策</Link>
+          <Link href="/report" className="hover:text-gray-600">投诉举报</Link>
+        </div>
       </div>
     </main>
   )

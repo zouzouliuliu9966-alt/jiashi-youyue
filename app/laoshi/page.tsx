@@ -61,7 +61,7 @@ const FAQS = [
   },
   {
     q: '课时费什么时候到手？',
-    a: '两种方式由您和家长商定：家长直接转给您，或者付到平台账户由平台转给您。走平台的话，课程结束、家长确认后结算。',
+    a: '家长直接付给您本人，平台不代收、不经手课时费，所以也不存在平台压款。具体节奏由您和家长商定。平台内的课时记录只用于双方对账，不代表平台持有款项。',
   },
 ]
 
@@ -205,6 +205,11 @@ export default function JoinPage() {
         <p className="text-center text-xs text-gray-400 mt-3">
           注册、展示、看需求全程免费 · 平台不向家长收取任何费用
         </p>
+        <div className="mt-4 flex justify-center gap-4 text-xs text-gray-400">
+          <Link href="/terms" className="hover:text-gray-600">用户协议</Link>
+          <Link href="/privacy" className="hover:text-gray-600">隐私政策</Link>
+          <Link href="/report" className="hover:text-gray-600">投诉举报</Link>
+        </div>
       </div>
     </main>
   )

@@ -1,10 +1,19 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { requireTeacher } from '@/lib/auth-helpers'
-import { notifyWecom, teacherPaidMessage } from '@/lib/notify'
+import { notifyWecomText, teacherPaidMessage } from '@/lib/notify'
 
 export async function POST(req: Request) {
-  const { matchId, response, paymentAmount } = await req.json()
+  let body
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: '请求格式不正确' }, { status: 400 })
+  }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return NextResponse.json({ error: '请求格式不正确' }, { status: 400 })
+  }
+  const { matchId, response, paymentAmount } = body
   if (!matchId || !response) {
     return NextResponse.json({ error: '缺少参数' }, { status: 400 })
   }
@@ -41,7 +50,7 @@ export async function POST(req: Request) {
       .single()
     const t = info?.teachers as { name?: string } | null
     const b = info?.bookings as { student_grade?: string } | null
-    await notifyWecom(teacherPaidMessage({
+    await notifyWecomText(teacherPaidMessage({
       teacher_name: t?.name,
       amount: info?.payment_amount,
       student_grade: b?.student_grade,

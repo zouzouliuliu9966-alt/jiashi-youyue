@@ -151,7 +151,7 @@ export default function MyLessonsPage() {
                       </p>
                     </div>
                     {l.settled && (
-                      <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">已结算</span>
+                      <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">已对账</span>
                     )}
                   </div>
 
@@ -159,9 +159,9 @@ export default function MyLessonsPage() {
                     <span className="text-gray-400">单价</span>
                     <span className="text-gray-700 text-right">¥{Number(l.price_per_lesson).toFixed(0)}</span>
 
-                    <span className="text-gray-400">付款状态</span>
+                    <span className="text-gray-400">课时费</span>
                     <span className={`text-right ${l.payment_status === 'paid' ? 'text-green-600' : 'text-orange-600'}`}>
-                      {l.payment_status === 'paid' ? '已付款' : '待付款'}
+                      {l.payment_status === 'paid' ? '已付老师' : '待付老师'}
                     </span>
 
                     <span className="text-gray-400">上课状态</span>
@@ -194,7 +194,7 @@ export default function MyLessonsPage() {
 
         <div className="mt-6 bg-orange-50 rounded-xl p-4 text-xs text-orange-700">
           <p className="font-medium mb-1">说明</p>
-          <p>老师上完课后会标记已完成，请您及时确认。确认后平台将结算课时费给老师。</p>
+          <p>老师上完课后会标记已完成，请您及时确认。确认后这节课即记为完成，用于您和老师双方对账。课时费由您直接付给老师，平台不代收也不经手。</p>
         </div>
       </div>
     </main>

@@ -625,7 +625,7 @@ export default function TeacherDashboard() {
                     </p>
                   </div>
                   {l.settled && (
-                    <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">已结算</span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">已对账</span>
                   )}
                 </div>
 
@@ -636,9 +636,9 @@ export default function TeacherDashboard() {
                   <span className="text-gray-400">单价</span>
                   <span className="text-gray-700 text-right">¥{Number(l.price_per_lesson).toFixed(0)}</span>
 
-                  <span className="text-gray-400">付款状态</span>
+                  <span className="text-gray-400">课时费</span>
                   <span className={`text-right ${l.payment_status === 'paid' ? 'text-green-600' : 'text-orange-600'}`}>
-                    {l.payment_status === 'paid' ? '已付款' : '待付款'}
+                    {l.payment_status === 'paid' ? '家长已付' : '家长待付'}
                   </span>
 
                   <span className="text-gray-400">上课状态</span>
@@ -653,19 +653,19 @@ export default function TeacherDashboard() {
 
                   {l.settled ? (
                     <>
-                      <span className="text-gray-400">结算金额</span>
+                      <span className="text-gray-400">本节课时费</span>
                       <span className="text-green-700 text-right font-medium">¥{Number(settleAmount).toFixed(2)}</span>
-                      {/* 不抽成时不显示这行，别让老师看到「平台抽成 ¥0.00」平白生疑 */}
+                      {/* 不抽成时不显示这行，别让老师看到「平台抽成（应为 0） ¥0.00」平白生疑 */}
                       {Number(platformFee) > 0 && (
                         <>
-                          <span className="text-gray-400">平台抽成</span>
+                          <span className="text-gray-400">平台抽成（应为 0）</span>
                           <span className="text-gray-500 text-right">¥{Number(platformFee).toFixed(2)}</span>
                         </>
                       )}
                     </>
                   ) : (
                     <>
-                      <span className="text-gray-400">预计结算</span>
+                      <span className="text-gray-400">本节课时费</span>
                       <span className="text-gray-600 text-right">
                         ¥{Number(settleAmount).toFixed(2)}
                         {rate > 0 && <span className="text-gray-400">（抽{(rate * 100).toFixed(0)}%）</span>}

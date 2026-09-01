@@ -20,9 +20,9 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-const SITE_URL = "https://www.jiashiyouyue.com";
+const SITE_URL = "https://www.jiashiyouyue.com"; // 与 lib/legal.ts 的 SITE_URL 保持一致
 const TITLE = "家师有约 — 严选南京家教";
-const DESCRIPTION = "严选南京家教，教务一对一匹配。持证教师 · 免费匹配 · 不满意可换老师。";
+const DESCRIPTION = "南京家教，教务一对一匹配。教务面试筛选 · 免费匹配 · 不满意可换老师。";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
