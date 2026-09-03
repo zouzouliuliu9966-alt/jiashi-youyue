@@ -9,7 +9,8 @@
 --    对外措辞只能说「不成单秒退」，绝不能说「托管」或「先不扣款」——
 --    老师一看到账通知就知道是假的。
 --
--- 这段 SQL 可以随时执行，只加列不改现有逻辑，跑早跑晚都不影响线上。
+-- ✅ 已于 2026-09-03 在线上执行完毕（走东京 pooler 直连，连法见 HANDOFF.md）。
+-- 执行后已校验：四个列都在、两条 CHECK 都在，并真插脏数据验证过约束确实拦得住。
 
 alter table public.matches
   add column if not exists fee_status text,

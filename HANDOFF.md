@@ -99,6 +99,7 @@ components/
 supabase/
   schema.sql               完整表结构（新建项目时整份执行一次就能复刻线上）
   platform_rate_default_0.sql  已执行，把课时费抽成默认值改成 0
+  fee_clearing.sql         已于 2026-09-03 执行，matches 加信息费核销台账四列 + 两条 CHECK
   teacher_reviews.sql      评价系统设计稿，未执行未启用
 scripts/
   reset-demo-data.mjs      正式宣传前清空演示数据（默认演练，--execute 才真删）
@@ -117,7 +118,27 @@ scripts/
 | `lesson_orders` | 课时订单，走 4.3 的状态机 |
 | ~~`teacher_reviews`~~ | 评价表，**只有设计稿 `supabase/teacher_reviews.sql`，未执行未启用**，见第 8 节待办 6 |
 
-改表结构要去 Supabase 后台的 SQL Editor 手动执行 SQL，REST API 改不了。
+改表结构 REST API 改不了。两条路：去 Supabase 后台的 SQL Editor 手动跑，
+或者**直连数据库跑**（2026-09-03 摸通，下次别再重找）：
+
+```
+主机  aws-1-ap-northeast-1.pooler.supabase.com    ← 项目在东京，不是新加坡
+端口  5432（session 模式，支持 DDL；6543 是事务模式）
+用户  postgres.yshykpooodlapntbjphk
+密码  数据库密码，问裴老师要（Supabase 后台 → Settings → Database）
+```
+
+🔴 三个坑，每个都花了时间：
+1. **`db.<ref>.supabase.co` 是 IPv6-only**，而本机 Shadowrocket 是 fake-ip TUN 模式，
+   裸 IP + 5432 匹配不到规则会被直接关掉（TCP 握手成功、服务端零字节响应）。
+   代理对 5432 的 CONNECT 也返回 503。**别去改代理配置**，用 pooler 就行，它是 IPv4 走域名，代理正常放行。
+2. **区域是 `ap-northeast-1`（东京）**。别从 IPv6 段猜——`2406:da14` 看着像新加坡，其实不是。
+   猜错时 pooler 报的是 `tenant/user not found`，容易误判成"没开 pooler"。
+3. **前缀是 `aws-1-` 不是 `aws-0-`**（新项目用 aws-1）。
+
+脚本可参考 `scratchpad/run-migration.mjs` 的写法：密码只走环境变量、执行后自动校验列与约束、
+并真插脏数据验证约束拦不拦得住再回滚。
+
 完整表结构在 `supabase/schema.sql`（2026-08-08 从线上反推补齐，此前主表 DDL 一直不在版本库里）。
 
 **外键依赖顺序**（删数据时按这个走，反着来会撞外键；除 `password_reset_requests` 外都没有 CASCADE）：
