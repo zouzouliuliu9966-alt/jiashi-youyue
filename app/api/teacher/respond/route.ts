@@ -31,14 +31,38 @@ export async function POST(req: Request) {
   const unauth = await requireTeacher(req, match.teacher_id)
   if (unauth) return unauth
 
+  // response 必须是枚举，且只能从 pending 出发。
+  // 不限制的话，老师能把已付款/已核销的记录改成 declined，
+  // 费用状态和家长联系方式就从他自己的页面上消失了（钱却已经收了）。
+  if (response !== 'accepted' && response !== 'declined') {
+    return NextResponse.json({ error: '无效的操作' }, { status: 400 })
+  }
+
   const updateData: Record<string, unknown> = { teacher_response: response }
   if (response === 'accepted' && paymentAmount) {
     updateData.payment_amount = paymentAmount
   }
 
-  const { error } = await supabaseAdmin.from('matches').update(updateData).eq('id', matchId)
+  // Supabase 对零行 UPDATE 不报错。不看命中行数的话：
+  // ① 重复点「接单」会再推一条企微通知；② accepted/declined 并发时败方也返回成功，
+  // 前端把本地状态改成自己提交的值，跟数据库相反。
+  const { data: changed, error } = await supabaseAdmin
+    .from('matches')
+    .update(updateData)
+    .eq('id', matchId)
+    .eq('teacher_response', 'pending')
+    .select('id')
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 })
+  }
+  if (!changed?.length) {
+    // 已经处理过了。相同结果的重试按幂等成功返回，但绝不重复副作用（不再推通知）
+    const { data: cur } = await supabaseAdmin
+      .from('matches').select('teacher_response').eq('id', matchId).single()
+    if (cur?.teacher_response === response) {
+      return NextResponse.json({ success: true, alreadyDone: true })
+    }
+    return NextResponse.json({ error: '这条需求已经处理过了，请刷新查看' }, { status: 409 })
   }
 
   // 老师接单=已付信息费，要教务尽快确认收款，否则老师干等着看不到家长联系方式

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Booking, Teacher, Match } from '@/lib/types'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -13,9 +13,12 @@ export default function AdminBookings() {
   const [bookings, setBookings] = useState<BookingWithTeacher[]>([])
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [pendingPayments, setPendingPayments] = useState<MatchWithDetails[]>([])
+  // 待核销：已收到信息费，等这一单真的开课了才算平台的；没成单就退给老师
+  const [pendingClearing, setPendingClearing] = useState<MatchWithDetails[]>([])
+  const [clearingUnavailable, setClearingUnavailable] = useState(false)
   const [loading, setLoading] = useState(true)
   const [pushingId, setPushingId] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'bookings' | 'payments'>('bookings')
+  const [activeTab, setActiveTab] = useState<'bookings' | 'payments' | 'clearing'>('bookings')
 
   const adminHeaders = useCallback((): HeadersInit => {
     const pw = typeof window !== 'undefined' ? localStorage.getItem('admin_auth') || '' : ''
@@ -27,14 +30,22 @@ export default function AdminBookings() {
     router.push('/admin/login')
   }, [router])
 
+  // 请求序号：确认收款/核销后会立刻再 load 一次，
+  // 若更早发出的那次请求晚返回，会用旧快照覆盖列表，把已经处理掉的行重新显示出来。
+  const loadSeq = useRef(0)
+
   const load = useCallback(async () => {
+    const seq = ++loadSeq.current
     const res = await fetch('/api/admin/bookings', { headers: adminHeaders() })
     if (res.status === 401) { logout(); return }
     if (!res.ok) { setLoading(false); return }
     const json = await res.json()
     setBookings(json.bookings || [])
     setTeachers(json.teachers || [])
+    if (seq !== loadSeq.current) return   // 有更新的请求在跑，丢弃这次的旧结果
     setPendingPayments(json.pendingPayments || [])
+    setPendingClearing(json.pendingClearing || [])
+    setClearingUnavailable(!!json.clearingUnavailable)
     setLoading(false)
   }, [adminHeaders, logout])
 
@@ -78,6 +89,33 @@ export default function AdminBookings() {
     }
     setPendingPayments(ps => ps.filter(p => p.id !== matchId))
     setBookings(bs => bs.map(b => b.id === bookingId ? { ...b, status: 'matched' } : b))
+    // 待核销列表以服务端为准重新拉一次，别用本地记录拼 ——
+    // 另一个教务同时在处理时，本地拼出来的条目实际上已经不存在了
+    load()
+  }
+
+  // 核销 / 退款。退款要填原因，教务自己心里有数，也让老师看得到备注
+  const settleFee = async (matchId: string, action: 'clear_fee' | 'refund_fee') => {
+    let note: string | null = null
+    if (action === 'refund_fee') {
+      note = prompt('退款原因（会显示给老师，可留空）\n例：家长临时取消，已微信转回', '')
+      if (note === null) return          // 点了取消
+      if (!confirm('确认这笔信息费已经退回给老师了吗？\n（系统只记账，实际转账要你手动操作）')) return
+    } else {
+      if (!confirm('确认核销？表示这一单确实开课了，这笔信息费算平台收入。')) return
+    }
+    const res = await fetch(`/api/admin/matches/${matchId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...adminHeaders() },
+      body: JSON.stringify({ action, note: note || undefined }),
+    })
+    if (res.status === 401) { logout(); return }
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      alert('操作失败：' + (json.error || '未知错误'))
+      return
+    }
+    setPendingClearing(ps => ps.filter(p => p.id !== matchId))
   }
 
   const updateStatus = async (id: string, status: Booking['status']) => {
@@ -138,8 +176,62 @@ export default function AdminBookings() {
               </span>
             )}
           </button>
+          <button onClick={() => setActiveTab('clearing')}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'clearing' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>
+            待核销 {pendingClearing.length > 0 && (
+              <span className="bg-amber-500 text-white text-xs rounded-full px-1.5 ml-1">
+                {pendingClearing.length}
+              </span>
+            )}
+          </button>
         </div>
       </div>
+
+      {activeTab === 'clearing' && (
+        <div className="max-w-3xl mx-auto px-4 py-4 space-y-4">
+          {clearingUnavailable ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800 leading-relaxed">
+              待核销功能还没启用：数据库里缺 <code className="bg-amber-100 px-1 rounded">matches.fee_status</code> 等字段。
+              去 Supabase 后台 SQL Editor 执行 <code className="bg-amber-100 px-1 rounded">supabase/fee_clearing.sql</code> 即可。
+            </div>
+          ) : pendingClearing.length === 0 ? (
+            <div className="text-center text-gray-400 py-16">暂无待核销的信息费</div>
+          ) : (
+            <>
+              <p className="text-xs text-gray-500 leading-relaxed bg-gray-50 rounded-xl p-3">
+                这些老师已经付过信息费、也拿到了家长联系方式。
+                <span className="font-medium">确实开课了就点「核销」</span>；
+                <span className="font-medium">没成单就点「已退款」</span>——
+                系统只记账，钱要你自己手动转回去。
+              </p>
+              {pendingClearing.map(p => (
+                <div key={p.id} className="bg-white rounded-2xl p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <span className="font-medium text-gray-900">
+                      {p.teachers?.name} · 信息费 {p.payment_amount ? `¥${p.payment_amount}` : '（未记金额）'}
+                    </span>
+                    <span className="text-xs text-gray-400">{new Date(p.created_at).toLocaleDateString('zh-CN')}</span>
+                  </div>
+                  <div className="text-sm text-gray-600 space-y-1 mb-3">
+                    <p><span className="text-gray-400">学生：</span>{p.bookings?.student_grade} · {p.bookings?.address}</p>
+                    <p><span className="text-gray-400">家长：</span>{p.bookings?.phone}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => settleFee(p.id, 'clear_fee')}
+                      className="flex-1 bg-gray-800 hover:bg-gray-900 text-white rounded-xl py-2.5 text-sm font-medium">
+                      核销（已开课）
+                    </button>
+                    <button onClick={() => settleFee(p.id, 'refund_fee')}
+                      className="flex-1 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-xl py-2.5 text-sm font-medium">
+                      已退款（没成单）
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      )}
 
       {activeTab === 'payments' && (
         <div className="max-w-3xl mx-auto px-4 py-4 space-y-4">

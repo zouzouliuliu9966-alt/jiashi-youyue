@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Teacher, Match, Booking } from '@/lib/types'
 import { useRouter } from 'next/navigation'
 import { LessonStatus, isDone, lessonStatusLabel } from '@/lib/lesson-status'
+import { feeStatusForTeacher } from '@/lib/fee-status'
 
 const SUBJECTS_OPTIONS = ['语文', '数学', '英语', '物理', '化学', '生物', '地理', '政治', '历史', '艺术类']
 const GRADES_OPTIONS = ['一年级', '二年级', '三年级', '四年级', '五年级', '六年级', '初一', '初二', '初三', '高一', '高二', '高三']
@@ -555,11 +556,34 @@ export default function TeacherDashboard() {
               <p className="text-sm text-gray-600 mb-1"><span className="text-gray-400">可上课时间：</span>{m.bookings?.available_time}</p>
 
               {m.teacher_response === 'accepted' && m.payment_confirmed && (
-                <div className="mt-3 bg-green-50 border border-green-200 rounded-xl p-3">
-                  <p className="text-sm font-medium text-green-800 mb-2">家长联系方式</p>
-                  <p className="text-sm text-green-700"><span className="text-green-500">手机：</span>{m.bookings?.phone}</p>
-                  <p className="text-sm text-green-700"><span className="text-green-500">微信：</span>{m.bookings?.wechat}</p>
-                </div>
+                <>
+                  <div className="mt-3 bg-green-50 border border-green-200 rounded-xl p-3">
+                    <p className="text-sm font-medium text-green-800 mb-2">家长联系方式</p>
+                    <p className="text-sm text-green-700"><span className="text-green-500">手机：</span>{m.bookings?.phone}</p>
+                    <p className="text-sm text-green-700"><span className="text-green-500">微信：</span>{m.bookings?.wechat}</p>
+                  </div>
+
+                  {/* 信息费状态必须让老师看得见 —— 看不见的「不成单秒退」没人信 */}
+                  {(() => {
+                    const f = feeStatusForTeacher(m.fee_status ?? null, true)
+                    const tone = f.tone === 'ok'
+                      ? 'bg-gray-50 border-gray-200 text-gray-700'
+                      : f.tone === 'refund'
+                        ? 'bg-blue-50 border-blue-200 text-blue-800'
+                        : 'bg-amber-50 border-amber-200 text-amber-800'
+                    return (
+                      <div className={`mt-2 border rounded-xl p-3 ${tone}`}>
+                        <p className="text-sm font-medium">
+                          信息费 {m.payment_amount ? `¥${m.payment_amount}` : ''} · {f.label}
+                        </p>
+                        <p className="text-xs mt-0.5 leading-relaxed opacity-90">{f.hint}</p>
+                        {m.fee_note && (
+                          <p className="text-xs mt-1 opacity-75">教务备注：{m.fee_note}</p>
+                        )}
+                      </div>
+                    )
+                  })()}
+                </>
               )}
 
               {m.teacher_response === 'accepted' && !m.payment_confirmed && (

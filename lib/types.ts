@@ -47,5 +47,11 @@ export type Match = {
   teacher_response: 'pending' | 'accepted' | 'declined'
   payment_confirmed: boolean
   payment_amount: string | null
+  // 信息费核销台账。注意：这只是账面状态，收款走个人码、钱早就到账了，
+  // 平台没有冻结能力。对老师只能说「不成单秒退」，不能说「托管」。
+  fee_status: 'pending' | 'cleared' | 'refunded' | null
+  fee_cleared_at: string | null
+  fee_refunded_at: string | null
+  fee_note: string | null
   created_at: string
 }

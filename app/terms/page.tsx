@@ -43,10 +43,10 @@ export default function TermsPage() {
           </p>
         </Highlight>
         <p className="pt-2">
-          <span className="font-medium text-gray-800">信息服务费退还规则</span>：老师接单后，如因家长方原因未能实际开课
-          （家长失联、临时取消、需求与描述不符等），老师联系教务说明情况，
-          由老师选择：另行安排一条同等需求，或退还该笔信息服务费（人工转回，非原路退款）。
-          教务在收到申请后 3 个工作日内给出处理结果。
+          <span className="font-medium text-gray-800">信息服务费退还规则</span>：老师接单后，
+          如因家长方原因未能实际开课（家长失联、临时取消、需求与描述不符等），
+          老师联系教务说明情况，教务核实后<span className="font-medium text-gray-800">全额退还</span>该笔信息服务费。
+          教务核实后<span className="font-medium text-gray-800">当个工作日内</span>处理，人工转回（非原路退款）。
         </p>
       </Section>
 
